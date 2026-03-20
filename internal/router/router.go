@@ -1,6 +1,7 @@
 package router
 
 import (
+	"gophermart/internal/loger"
 	"net/http"
 	"time"
 
@@ -8,7 +9,12 @@ import (
 )
 
 func Run() error {
-	// Добавить логгер
+	// логгер
+	if err := loger.Initialize("INFO"); err != nil {
+		return err
+	}
+	defer loger.Log.Sync()
+	loger.Log.Info("Router module starts")
 	// Добавить config.go
 
 	r := chi.NewRouter()
@@ -20,6 +26,8 @@ func Run() error {
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
+
+	r.Use(loger.RequestLogger)
 	//r.Post("/api/user/register")
 
 	return srv.ListenAndServe()
