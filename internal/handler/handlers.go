@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"gophermart/internal/config"
 	"gophermart/internal/loger"
@@ -50,7 +51,7 @@ func (h *Handler) RegisterUser(res http.ResponseWriter, req *http.Request) {
 		}
 
 		// Вызывам дальнейшую обработку в слое сервиса
-		services.RegisterUser(userRegister.Login, userRegister.Password)
+		h.Srv.RegisterUser(context.TODO(), userRegister.Login, userRegister.Password)
 
 	default:
 		errorResponse(res)

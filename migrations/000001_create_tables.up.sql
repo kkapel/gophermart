@@ -1,7 +1,7 @@
 create table users(
 id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-login varchar(100),
-pass_hash varchar(100)
+login varchar(100) NOT NULL,
+pass_hash varchar(100) NOT NULL
 );
 
 comment on column users.id is 'ID записи';

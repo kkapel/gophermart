@@ -64,3 +64,7 @@ func migrateDB(dbConnect string) error {
 	}
 	return nil
 }
+
+func (db *DB) GetSqlDb() *sql.DB {
+	return db.db
+}

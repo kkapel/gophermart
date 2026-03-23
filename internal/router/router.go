@@ -32,7 +32,7 @@ func Run() error {
 		return err
 	}
 
-	service := services.CreateGophermartService(db)
+	service := services.CreateGophermartService(db.GetSqlDb())
 
 	h := &handler.Handler{
 		Cfg: cfg,

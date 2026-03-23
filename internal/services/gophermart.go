@@ -1,23 +1,36 @@
 package services
 
 import (
-	db "gophermart/internal/db/connections"
+	"context"
+	"database/sql"
+	db "gophermart/internal/db"
 )
 
 type GophermartService struct {
-	db *db.DB
+	queries *db.Queries
 }
 
-func CreateGophermartService(db *db.DB) *GophermartService {
+func CreateGophermartService(conn *sql.DB) *GophermartService {
 	return &GophermartService{
-		db: db,
+		queries: db.New(conn),
 	}
 
 }
 
-func RegisterUser(login string, password string) {
+func (s *GophermartService) RegisterUser(ctx context.Context, login string, password string) error {
 
 	// формирование хеша для пароля
-	//hashPassword := HashPassword(password)
+	hashPassword, err := HashPassword(password)
+	if err != nil {
+		return err
+	}
+
 	// Вызов БД
+	err = s.queries.SaveUser(ctx, db.SaveUserParams{
+		Login:    login,
+		PassHash: hashPassword,
+	})
+
+	return err
+
 }
