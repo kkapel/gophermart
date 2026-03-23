@@ -1,6 +1,11 @@
 package config
 
-import "github.com/spf13/viper"
+import (
+	"errors"
+
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+)
 
 type Config struct {
 	RunAddress           string
@@ -8,17 +13,58 @@ type Config struct {
 	AccrualSystemAddress string
 }
 
-func CreateConfig() *Config {
-	//Используем Viper для получения переменных окружения
+var ErrFlagAndEnvVarNotFound = errors.New("Flag and environment variables not found")
+
+func CreateConfig() (*Config, error) {
+	//Используем Viper для получения флагов и переменных окружения
+	pflag.String("a", "", "Run address flag")
+	pflag.String("d", "", "Database uri flag")
+	pflag.String("r", "", "Accrual system address")
+	pflag.Parse()
+
+	viper.BindPFlags(pflag.CommandLine)
+	runAddressFlag := viper.GetString("a")
+	databaseURIFlag := viper.GetString("d")
+	accrualSystemAddressFlag := viper.GetString("r")
+
+	// Переменные окружения
 	viper.AllowEmptyEnv(true)
 	viper.AutomaticEnv()
-	runAddress := viper.GetString("RUN_ADDRESS")
-	dataBaseURI := viper.GetString("DATABASE_URI")
-	accrualSystemAddress := viper.GetString("ACCRUAL_SYSTEM_ADDRESS")
+	runAddressEnv := viper.GetString("RUN_ADDRESS")
+	dataBaseURIEnv := viper.GetString("DATABASE_URI")
+	accrualSystemAddressEnv := viper.GetString("ACCRUAL_SYSTEM_ADDRESS")
+
+	// Приоритет:
+	// 1. Флаги
+	// 2. Переменные окружения
+	var runAddress, dataBaseURI, accrualSystemAddress string
+	if runAddressFlag != "" {
+		runAddress = runAddressFlag
+	} else if runAddressEnv != "" {
+		runAddress = runAddressEnv
+	} else {
+		return nil, ErrFlagAndEnvVarNotFound
+	}
+
+	if databaseURIFlag != "" {
+		dataBaseURI = databaseURIFlag
+	} else if dataBaseURIEnv != "" {
+		dataBaseURI = dataBaseURIEnv
+	} else {
+		return nil, ErrFlagAndEnvVarNotFound
+	}
+
+	if accrualSystemAddressFlag != "" {
+		accrualSystemAddress = accrualSystemAddressFlag
+	} else if accrualSystemAddressEnv != "" {
+		accrualSystemAddress = accrualSystemAddressEnv
+	} else {
+		return nil, ErrFlagAndEnvVarNotFound
+	}
 
 	return &Config{
-		RunAddress:           "",
-		DataBaseURI:          "",
-		AccrualSystemAddress: "",
-	}
+		RunAddress:           runAddress,
+		DataBaseURI:          dataBaseURI,
+		AccrualSystemAddress: accrualSystemAddress,
+	}, nil
 }
