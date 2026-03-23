@@ -14,6 +14,7 @@ import (
 
 type Handler struct {
 	Cfg *config.Config
+	Srv *services.GophermartService
 }
 
 type UserRegister struct {

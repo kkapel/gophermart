@@ -2,8 +2,10 @@ package router
 
 import (
 	"gophermart/internal/config"
+	db "gophermart/internal/db/connections"
 	"gophermart/internal/handler"
 	"gophermart/internal/loger"
+	"gophermart/internal/services"
 	"net/http"
 	"time"
 
@@ -24,8 +26,17 @@ func Run() error {
 		return err
 	}
 
+	//db init
+	db, err := db.InitDB(cfg.DataBaseURI)
+	if err != nil {
+		return err
+	}
+
+	service := services.CreateGophermartService(db)
+
 	h := &handler.Handler{
 		Cfg: cfg,
+		Srv: service,
 	}
 
 	r := chi.NewRouter()
