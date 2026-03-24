@@ -41,18 +41,27 @@ func (h *Handler) RegisterUser(res http.ResponseWriter, req *http.Request) {
 			// Ошибка 400
 			loger.Log.Error("handlers.go", zap.String("Function RegisterUser", "Can not unmarshal request body"))
 			http.Error(res, err.Error(), http.StatusBadRequest)
+			return
 		}
 
 		if err := validateUserRegister(&userRegister); err != nil {
 			// Ошибка 400
 			loger.Log.Error("handlers.go", zap.String("Function RegisterUser", "Request validate error"))
 			http.Error(res, err.Error(), http.StatusBadRequest)
+			return
 		}
 
 		// Вызывам дальнейшую обработку в слое сервиса
 		token, err := h.Srv.RegisterUser(req.Context(), userRegister.Login, userRegister.Password)
 
 		// отдельно нужно обработать ошибку 409 - Логин уже занят
+		if err == services.ErrUniqueLogin {
+			http.Error(res, err.Error(), http.StatusConflict)
+			return
+		} else if err != nil {
+			loger.Log.Error("handlers.go", zap.String("Function RegisterUser", err.Error()))
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+		}
 
 		// Заполняем хедер "Authorization"
 		res.Header().Set("Authorization", "Bearer "+token)

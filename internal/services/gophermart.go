@@ -3,10 +3,12 @@ package services
 import (
 	"context"
 	"database/sql"
+	"errors"
 	db "gophermart/internal/db"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type GophermartService struct {
@@ -20,6 +22,8 @@ type Claims struct {
 
 const TokenExp = time.Hour * 3
 const SecretKey = "testKey1"
+
+var ErrUniqueLogin = errors.New("Login already exists")
 
 func CreateGophermartService(conn *sql.DB) *GophermartService {
 	return &GophermartService{
@@ -43,6 +47,13 @@ func (s *GophermartService) RegisterUser(ctx context.Context, login string, pass
 	})
 
 	if err != nil {
+		// Проверяем отдельно ошибку дубля для логина
+		var pgErr *pgconn.PgError
+		if errors.As(err, pgErr) {
+			if pgErr.Code == "23505" { // unique constraint violation
+				return "", ErrUniqueLogin
+			}
+		}
 		return "", err
 	}
 
