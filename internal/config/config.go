@@ -17,9 +17,9 @@ var ErrFlagAndEnvVarNotFound = errors.New("Flag and environment variables not fo
 
 func CreateConfig() (*Config, error) {
 	//Используем Viper для получения флагов и переменных окружения
-	pflag.String("a", "", "Run address flag")
+	pflag.String("a", "localhost:8080", "Run address flag")
 	pflag.String("d", "", "Database uri flag")
-	pflag.String("r", "", "Accrual system address")
+	pflag.String("r", "localhost:8080", "Accrual system address")
 	pflag.Parse()
 
 	viper.BindPFlags(pflag.CommandLine)
@@ -42,8 +42,6 @@ func CreateConfig() (*Config, error) {
 		runAddress = runAddressFlag
 	} else if runAddressEnv != "" {
 		runAddress = runAddressEnv
-	} else {
-		return nil, ErrFlagAndEnvVarNotFound
 	}
 
 	if databaseURIFlag != "" {
@@ -58,8 +56,6 @@ func CreateConfig() (*Config, error) {
 		accrualSystemAddress = accrualSystemAddressFlag
 	} else if accrualSystemAddressEnv != "" {
 		accrualSystemAddress = accrualSystemAddressEnv
-	} else {
-		return nil, ErrFlagAndEnvVarNotFound
 	}
 
 	return &Config{
