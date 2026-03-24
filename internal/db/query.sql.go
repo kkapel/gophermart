@@ -36,8 +36,9 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
-const saveUser = `-- name: SaveUser :exec
+const saveUser = `-- name: SaveUser :one
 INSERT INTO USERS (login, pass_hash) VALUES ($1, $2)
+RETURNING id
 `
 
 type SaveUserParams struct {
@@ -45,7 +46,9 @@ type SaveUserParams struct {
 	PassHash string
 }
 
-func (q *Queries) SaveUser(ctx context.Context, arg SaveUserParams) error {
-	_, err := q.db.ExecContext(ctx, saveUser, arg.Login, arg.PassHash)
-	return err
+func (q *Queries) SaveUser(ctx context.Context, arg SaveUserParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, saveUser, arg.Login, arg.PassHash)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
 }

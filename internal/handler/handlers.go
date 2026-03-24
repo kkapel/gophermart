@@ -50,7 +50,13 @@ func (h *Handler) RegisterUser(res http.ResponseWriter, req *http.Request) {
 		}
 
 		// Вызывам дальнейшую обработку в слое сервиса
-		h.Srv.RegisterUser(req.Context(), userRegister.Login, userRegister.Password)
+		token, err := h.Srv.RegisterUser(req.Context(), userRegister.Login, userRegister.Password)
+
+		// отдельно нужно обработать ошибку 409 - Логин уже занят
+
+		// Заполняем хедер "Authorization"
+		res.Header().Set("Authorization", "Bearer "+token)
+		res.WriteHeader(http.StatusOK)
 
 	default:
 		errorResponse(res)
