@@ -24,6 +24,7 @@ const TokenExp = time.Hour * 3
 const SecretKey = "testKey1"
 
 var ErrUniqueLogin = errors.New("Login already exists")
+var ErrPasswordIncorrect = errors.New("The password is incorrect")
 
 func CreateGophermartService(conn *sql.DB) *GophermartService {
 	return &GophermartService{
@@ -61,6 +62,32 @@ func (s *GophermartService) RegisterUser(ctx context.Context, login string, pass
 	token, err := generateToken(user)
 
 	return token, err
+
+}
+
+// Функция проверки пользователя
+func (s *GophermartService) AuthUser(ctx context.Context, login string, password string) (bool, error) {
+
+	//Получаем хэш-пароль из бд
+	hashPassword, err := s.queries.GetPassword(ctx, login)
+	if err != nil {
+		return false, err
+	}
+
+	// Проверяем хэш
+	userAuth, err := CheckPassword(password, hashPassword)
+
+	if err != nil {
+		return false, err
+	}
+
+	if userAuth {
+		return true, nil
+	} else {
+		return false, ErrPasswordIncorrect
+	}
+
+	return false, nil
 
 }
 

@@ -51,6 +51,7 @@ func Run() error {
 
 	r.Use(loger.RequestLogger)
 	r.Post("/api/user/register", h.RegisterUser)
+	r.Post("/api/user/login", h.UserAuth)
 
 	return srv.ListenAndServe()
 }

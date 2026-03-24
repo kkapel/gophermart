@@ -36,6 +36,17 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
+const getPassword = `-- name: GetPassword :one
+SELECT pass_hash FROM USERS WHERE login = $1
+`
+
+func (q *Queries) GetPassword(ctx context.Context, login string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getPassword, login)
+	var pass_hash string
+	err := row.Scan(&pass_hash)
+	return pass_hash, err
+}
+
 const saveUser = `-- name: SaveUser :one
 INSERT INTO USERS (login, pass_hash) VALUES ($1, $2)
 RETURNING id

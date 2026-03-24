@@ -73,6 +73,58 @@ func (h *Handler) RegisterUser(res http.ResponseWriter, req *http.Request) {
 
 }
 
+// Аутентификация пользователя
+func (h *Handler) UserAuth(res http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodPost:
+		loger.Log.Info("handlers.go", zap.String("Function UserAuth", "Starts function"))
+		body, err := io.ReadAll(req.Body)
+
+		if err != nil {
+			loger.Log.Error("handlers.go", zap.String("Function UserAuth", "Can not read request body"))
+			http.Error(res, "Cannot read request body", http.StatusBadRequest)
+			return
+		}
+		defer req.Body.Close()
+
+		var userRegister UserRegister
+		if err := json.Unmarshal(body, &userRegister); err != nil {
+			// Ошибка 400
+			loger.Log.Error("handlers.go", zap.String("Function UserAuth", "Can not unmarshal request body"))
+			http.Error(res, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if err := validateUserRegister(&userRegister); err != nil {
+			// Ошибка 400
+			loger.Log.Error("handlers.go", zap.String("Function UserAuth", "Request validate error"))
+			http.Error(res, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		auth, err := h.Srv.AuthUser(req.Context(), userRegister.Login, userRegister.Password)
+
+		//Ошибка логин/пароль
+		if err == services.ErrPasswordIncorrect {
+			// Status code 401
+			http.Error(res, err.Error(), http.StatusUnauthorized)
+			return
+		} else if err != nil {
+			loger.Log.Error("handlers.go", zap.String("Function UserAuth", err.Error()))
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+		}
+
+		if auth {
+			res.WriteHeader(http.StatusOK)
+			return
+		}
+
+	default:
+		errorResponse(res)
+	}
+
+}
+
 // Функция валидации входной структуры
 func validateUserRegister(userRegister *UserRegister) error {
 	validator := validator.New()

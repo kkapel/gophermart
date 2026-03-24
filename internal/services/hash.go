@@ -14,7 +14,7 @@ func HashPassword(password string) (string, error) {
 
 // Функция проверки пароля с использованием либы bcrypt
 func CheckPassword(requestPassword string, passwordFromDb string) (bool, error) {
-	err := bcrypt.CompareHashAndPassword([]byte(passwordFromDb), []byte(passwordFromDb))
+	err := bcrypt.CompareHashAndPassword([]byte(passwordFromDb), []byte(requestPassword))
 
 	if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 		return false, nil
