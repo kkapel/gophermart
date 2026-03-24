@@ -42,7 +42,7 @@ func Run() error {
 	r := chi.NewRouter()
 
 	srv := &http.Server{
-		Addr:         "addr",
+		Addr:         cfg.RunAddress,
 		Handler:      r,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
