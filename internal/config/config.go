@@ -20,7 +20,10 @@ func CreateConfig() (*Config, error) {
 	pflag.String("a", "localhost:8080", "Run address flag")
 	pflag.String("d", "", "Database uri flag")
 	pflag.String("r", "localhost:8080", "Accrual system address")
-	pflag.Parse()
+
+	if !pflag.CommandLine.Parsed() {
+		pflag.Parse()
+	}
 
 	viper.BindPFlags(pflag.CommandLine)
 	runAddressFlag := viper.GetString("a")

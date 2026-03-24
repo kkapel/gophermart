@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
 func Run() error {
@@ -22,6 +23,11 @@ func Run() error {
 
 	//config.go
 	cfg, err := config.CreateConfig()
+
+	loger.Log.Info("Starting server",
+		zap.String("addr", cfg.RunAddress),
+		zap.String("db", cfg.DataBaseURI))
+
 	if err != nil {
 		return err
 	}
