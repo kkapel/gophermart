@@ -7,3 +7,11 @@ pass_hash varchar(100) NOT NULL
 comment on column users.id is 'ID записи';
 comment on column users.login is 'Логин';
 comment on column users.pass_hash is 'Хэш-пароль';
+
+create table orders(
+    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    order_number varchar(50) NOT NULL,
+    status varchar(20) NOT NULL,
+    uploaded_at TIMESTAMPTZ NOT NULL ,
+    user_id INTEGER NOT NULL
+);

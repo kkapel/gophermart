@@ -4,6 +4,18 @@
 
 package db
 
+import (
+	"time"
+)
+
+type Order struct {
+	ID          int32
+	OrderNumber string
+	Status      string
+	UploadedAt  time.Time
+	UserID      int32
+}
+
 type User struct {
 	// ID записи
 	ID int32

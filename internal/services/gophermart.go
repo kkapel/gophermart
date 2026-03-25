@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	db "gophermart/internal/db"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -25,6 +26,7 @@ const SecretKey = "testKey1"
 
 var ErrUniqueLogin = errors.New("Login already exists")
 var ErrPasswordIncorrect = errors.New("The password is incorrect")
+var ErrIncorrectOrderNumberFormat = errors.New("Order number is incorrect")
 
 func CreateGophermartService(conn *sql.DB) *GophermartService {
 	return &GophermartService{
@@ -50,7 +52,7 @@ func (s *GophermartService) RegisterUser(ctx context.Context, login string, pass
 	if err != nil {
 		// Проверяем отдельно ошибку дубля для логина
 		var pgErr *pgconn.PgError
-		if errors.As(err, pgErr) {
+		if errors.As(err, &pgErr) {
 			if pgErr.Code == "23505" { // unique constraint violation
 				return "", ErrUniqueLogin
 			}
@@ -86,9 +88,29 @@ func (s *GophermartService) AuthUser(ctx context.Context, login string, password
 	} else {
 		return false, ErrPasswordIncorrect
 	}
+}
 
-	return false, nil
+// Функция сохранения номера заказа
+func (s *GophermartService) SaveOrder(ctx context.Context, orderNumber string) error {
+	// Делаем проверку, что пришло число
+	_, err := strconv.Atoi(orderNumber)
+	if err != nil {
+		return ErrPasswordIncorrect
+	}
 
+	// Проверяем на алгоритм Луна
+	if !CheckLuhnAlgorithm(orderNumber) {
+		return ErrIncorrectOrderNumberFormat
+	}
+
+	// Сохраняем номер заказа в БД
+	s.queries.SaveOrder(ctx, db.SaveOrderParams{
+		OrderNumber: orderNumber,
+		Status:      "NEW", // Новый заказ
+		UploadedAt:  time.Now(),
+	})
+
+	return nil
 }
 
 // Функция генерации токена
@@ -107,4 +129,26 @@ func generateToken(userID int32) (string, error) {
 	}
 
 	return tokenString, nil
+}
+
+// Алгоритм Луна
+func CheckLuhnAlgorithm(orderNumber string) bool {
+	sum := 0
+	nDigits := len(orderNumber)
+	parity := nDigits % 2
+	for i := 0; i < nDigits; i++ {
+		digit, err := strconv.Atoi(string(orderNumber[i]))
+		if err != nil {
+			return false
+		}
+
+		if i%2 == parity {
+			digit *= 2
+			if digit > 9 {
+				digit -= 9
+			}
+		}
+		sum += digit
+	}
+	return sum%10 == 0
 }

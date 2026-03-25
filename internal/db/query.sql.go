@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"time"
 )
 
 const getAllUsers = `-- name: GetAllUsers :many
@@ -45,6 +46,25 @@ func (q *Queries) GetPassword(ctx context.Context, login string) (string, error)
 	var pass_hash string
 	err := row.Scan(&pass_hash)
 	return pass_hash, err
+}
+
+const saveOrder = `-- name: SaveOrder :one
+INSERT INTO ORDERS(order_number, status, uploaded_at)
+VALUES($1, $2, $3)
+RETURNING id
+`
+
+type SaveOrderParams struct {
+	OrderNumber string
+	Status      string
+	UploadedAt  time.Time
+}
+
+func (q *Queries) SaveOrder(ctx context.Context, arg SaveOrderParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, saveOrder, arg.OrderNumber, arg.Status, arg.UploadedAt)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
 }
 
 const saveUser = `-- name: SaveUser :one

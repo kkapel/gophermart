@@ -125,6 +125,31 @@ func (h *Handler) UserAuth(res http.ResponseWriter, req *http.Request) {
 
 }
 
+// Функция сохранения номера заказа
+func (h *Handler) SaveOrder(res http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodPost:
+		loger.Log.Info("handlers.go", zap.String("Function SaveOrder", "Starts function"))
+		body, err := io.ReadAll(req.Body)
+
+		if err != nil {
+			loger.Log.Error("handlers.go", zap.String("Function SaveOrder", "Can not read request body"))
+			http.Error(res, "Cannot read request body", http.StatusBadRequest)
+			return
+		}
+		defer req.Body.Close()
+
+		orderNumber := string(body)
+
+		h.Srv.SaveOrder(req.Context(), orderNumber)
+		// Статус 202
+		res.WriteHeader(http.StatusAccepted)
+
+	default:
+		errorResponse(res)
+	}
+}
+
 // Функция валидации входной структуры
 func validateUserRegister(userRegister *UserRegister) error {
 	validator := validator.New()
