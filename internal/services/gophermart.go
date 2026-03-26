@@ -5,11 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	db "gophermart/internal/db"
+	"gophermart/internal/loger"
 	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/jackc/pgx/v5/pgconn"
+	"go.uber.org/zap"
 )
 
 type GophermartService struct {
@@ -24,9 +26,14 @@ type Claims struct {
 const TokenExp = time.Hour * 3
 const SecretKey = "testKey1"
 
-var ErrUniqueLogin = errors.New("Login already exists")
-var ErrPasswordIncorrect = errors.New("The password is incorrect")
-var ErrIncorrectOrderNumberFormat = errors.New("Order number is incorrect")
+var (
+	ErrUniqueLogin                = errors.New("Login already exists")
+	ErrPasswordIncorrect          = errors.New("The password is incorrect")
+	ErrIncorrectOrderNumberFormat = errors.New("Order number is incorrect")
+	TokenParsingError             = errors.New("TokenParsingError")
+	ErrTokenIsNotValid            = errors.New("TokenIsNotValid")
+	ErrUserIDNotFound             = errors.New("UserIDNotFound")
+)
 
 func CreateGophermartService(conn *sql.DB) *GophermartService {
 	return &GophermartService{
@@ -110,6 +117,33 @@ func (s *GophermartService) SaveOrder(ctx context.Context, orderNumber string) e
 		UploadedAt:  time.Now(),
 	})
 
+	return nil
+}
+
+// Функция проверки токена
+func CheckToken(tokenString string) error {
+	claims := &Claims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims,
+		func(t *jwt.Token) (interface{}, error) {
+			return []byte(SecretKey), nil
+		})
+	if err != nil {
+		return TokenParsingError
+	}
+
+	if !token.Valid {
+		loger.Log.Info("gophermart.go", zap.String("Func CheckToken", "Token is not valid"))
+
+		return ErrTokenIsNotValid
+	}
+
+	//Если userID не заполнен
+	if claims.UserID < 1 {
+		loger.Log.Info("gophermart.go", zap.String("Func CheckToken", "Token is not valid. UserID is empty"))
+		return ErrUserIDNotFound
+	}
+
+	loger.Log.Info("gophermart.go", zap.String("Func CheckToken", "Token is valid"))
 	return nil
 }
 

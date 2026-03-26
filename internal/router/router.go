@@ -58,10 +58,11 @@ func Run() error {
 	r.Use(loger.RequestLogger)
 
 	r.Group(func(r chi.Router) {
-		r.Post("/api/user/login", h.UserAuth)
 		r.Post("/api/user/register", h.RegisterUser)
+		r.Post("/api/user/login", h.UserAuth)
 	})
 
+	// С аутентификацией
 	r.Group(func(r chi.Router) {
 		r.Post("/api/user/orders", h.SaveOrder)
 	})
