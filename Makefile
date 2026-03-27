@@ -8,8 +8,12 @@ build: vet
 	go build -o $(BINARY_NAME).exe ./cmd/gophermart
 
 .PHONY: vet
-vet: 
+vet: lint
 	go vet ./...
+
+.PHONY: lint
+lint:
+	golangci-lint run --output.json.path=report_linter.json ./...
 
 .PHONY: run
 run: build
