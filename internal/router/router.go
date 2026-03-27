@@ -1,6 +1,7 @@
 package router
 
 import (
+	"gophermart/internal/auth"
 	"gophermart/internal/config"
 	db "gophermart/internal/db/connections"
 	"gophermart/internal/handler"
@@ -64,6 +65,7 @@ func Run() error {
 
 	// С аутентификацией
 	r.Group(func(r chi.Router) {
+		r.Use(auth.AuthMiddleware)
 		r.Post("/api/user/orders", h.SaveOrder)
 	})
 
