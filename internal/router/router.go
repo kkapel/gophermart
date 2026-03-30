@@ -34,7 +34,7 @@ func Run() error {
 	}
 
 	//db init
-	db, err := db.InitDB(cfg.DataBaseURI)
+	db, err := db.InitDB(cfg.DataBaseURI, "file://migrations")
 	if err != nil {
 		return err
 	}

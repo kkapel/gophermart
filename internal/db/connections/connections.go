@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"time"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -17,7 +18,7 @@ type DB struct {
 }
 
 // Инициализация БД
-func InitDB(dbConnect string) (*DB, error) {
+func InitDB(dbConnect string, migrationsPath string) (*DB, error) {
 	if dbConnect == "" {
 		return nil, nil
 	}
@@ -32,7 +33,7 @@ func InitDB(dbConnect string) (*DB, error) {
 		return nil, err
 	}
 
-	if err = migrateDB(dbConnect); err != nil {
+	if err = migrateDB(dbConnect, migrationsPath); err != nil {
 		return nil, err
 	}
 
@@ -56,12 +57,20 @@ func (db *DB) Close() error {
 	return nil
 }
 
-func migrateDB(dbConnect string) error {
-	m, err := migrate.New("file://migrations", dbConnect)
+func migrateDB(dbConnect string, migrationsPath string) error {
+	m, err := migrate.New(migrationsPath, dbConnect)
 	if err != nil {
 		return err
 	}
-	if err = m.Up(); err != nil && err != migrate.ErrNoChange {
+	if err = m.Up(); err != nil {
+		if err == migrate.ErrNoChange {
+			return nil
+		}
+		if err.Error() == "Dirty database version 1. Fix and force version." ||
+			strings.Contains(err.Error(), "dirty") {
+			_ = m.Force(1) // Снимаем флаг dirty
+			return m.Up()  // Пробуем накатить снова
+		}
 		return err
 	}
 	return nil

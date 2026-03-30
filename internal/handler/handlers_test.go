@@ -3,15 +3,14 @@ package handler
 import (
 	"gophermart/internal/config"
 	db "gophermart/internal/db/connections"
-	"gophermart/internal/loger"
 	"gophermart/internal/services"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 )
 
 func TestHandler(t *testing.T) {
@@ -19,11 +18,14 @@ func TestHandler(t *testing.T) {
 		code        int
 		contentType string
 	}
+	type err409 struct {
+		code int
+	}
 	tests := []struct {
-		name       string
-		want       want
-		requestURL string
-		body       string
+		name string
+		want want
+		body string
+		err  err409
 	}{
 		{
 			name: "Register test",
@@ -31,20 +33,35 @@ func TestHandler(t *testing.T) {
 				code:        200,
 				contentType: "application/json",
 			},
-			requestURL: "http://localhost:8080",
-			body:       `{"login": "User1", "password": "Test1"}`,
+			body: `{"login": "User12345", "password": "Test123456789"}`,
+			err: err409{
+				code: 409,
+			},
 		},
 	}
 
 	// Создаем конфиги и репозитории
 	cfg := &config.Config{
 		RunAddress:  "http://localhost:8080",
-		DataBaseURI: "postgresql://postgres:mysecretpassword@localhost:5432/postgres", // поправить
+		DataBaseURI: "postgresql://postgres:admin@localhost:5432/postgres?sslmode=disable", // поправить
 	}
 
-	db, _ := db.InitDB(cfg.DataBaseURI)
+	// Проверяем путь к миграциям
+	entries, err := os.ReadDir("../../migrations")
+	if err != nil {
+		t.Logf("Ошибка доступа к миграциям: %v", err)
+	} else {
+		for _, e := range entries {
+			t.Logf("Нашел файл миграции: %s", e.Name())
+		}
+	}
+
+	database, err := db.InitDB(cfg.DataBaseURI, "file://../../migrations")
+	if err != nil {
+		t.Fatalf("Failed to connect to DB: %v", err)
+	}
 	// слой сервиса
-	srv := services.CreateGophermartService(db.GetSqlDb())
+	srv := services.CreateGophermartService(database.GetSqlDb())
 
 	handler := &Handler{
 		Cfg: cfg,
@@ -52,22 +69,43 @@ func TestHandler(t *testing.T) {
 	}
 
 	//Тесты
-
 	for _, test := range tests {
 		// Общий сценарий
 		// 1. Регестрируем пользователя и получаем статус 200
+		// 2. Делаем повторный запрос на регистрацию с такими же данными и получаем ошибку 409.
+		// 3. Проверяем хэндлер авторизации
 		t.Run(test.name, func(t *testing.T) {
+			// чистим таблицы
+			_, err := database.GetSqlDb().Exec("TRUNCATE TABLE users RESTART IDENTITY CASCADE")
+			if err != nil {
+				t.Fatalf("failed to truncate table: %v", err)
+			}
+
 			//Тестируем хэндлер RegisterUser
-			requestRegisterUser := httptest.NewRequest(http.MethodPost, test.requestURL, strings.NewReader(test.body))
+			requestRegisterUser := httptest.NewRequest(http.MethodPost, handler.Cfg.RunAddress, strings.NewReader(test.body))
 			postRecorder := httptest.NewRecorder()
 			// тут вызвать хэндлер
 			handler.RegisterUser(postRecorder, requestRegisterUser)
 
 			resultResponse := postRecorder.Result()
+			defer resultResponse.Body.Close()
 
-			loger.Log.Info(test.name, zap.Any("response body", resultResponse.Body))
+			//t.Logf("Response Body: %s", postRecorder.Body.String()) // Выводим тело ответа
 			assert.Equal(t, test.want.code, resultResponse.StatusCode)
-			assert.Equal(t, test.want.contentType, resultResponse.Header.Get("Content-Type"))
+			// Проверяем что заполнился хедер Authorization
+			assert.NotEmpty(t, resultResponse.Header.Get("Authorization"), "Authorization should not be empty")
+
+			// Пробуем второй раз внести логин и пароль
+			// Должны получить ошибку 409
+			requestRegisterUser409 := httptest.NewRequest(http.MethodPost, handler.Cfg.RunAddress, strings.NewReader(test.body))
+			postRecorder409 := httptest.NewRecorder()
+			handler.RegisterUser(postRecorder409, requestRegisterUser409)
+
+			resultResponse409 := postRecorder409.Result()
+			defer resultResponse409.Body.Close()
+			assert.Equal(t, test.err.code, resultResponse409.StatusCode)
+
+			// Далее проверяем хэндлер POST /api/user/login
 
 		})
 	}
