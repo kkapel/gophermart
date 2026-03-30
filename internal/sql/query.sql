@@ -9,6 +9,9 @@ RETURNING id;
 SELECT pass_hash, id FROM USERS WHERE login = $1;
 
 -- name: SaveOrder :one
-INSERT INTO ORDERS(order_number, status, uploaded_at)
-VALUES($1, $2, $3)
+INSERT INTO ORDERS(order_number, status, uploaded_at, user_id)
+VALUES($1, $2, $3, $4)
 RETURNING id;
+
+-- name: GetUserIDByOrder :one
+SELECT user_id FROM ORDERS WHERE order_number = $1;

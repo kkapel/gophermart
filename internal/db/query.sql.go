@@ -69,9 +69,20 @@ func (q *Queries) GetPassword(ctx context.Context, login string) ([]GetPasswordR
 	return items, nil
 }
 
+const getUserIDByOrder = `-- name: GetUserIDByOrder :one
+SELECT user_id FROM ORDERS WHERE order_number = $1
+`
+
+func (q *Queries) GetUserIDByOrder(ctx context.Context, orderNumber string) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getUserIDByOrder, orderNumber)
+	var user_id int32
+	err := row.Scan(&user_id)
+	return user_id, err
+}
+
 const saveOrder = `-- name: SaveOrder :one
-INSERT INTO ORDERS(order_number, status, uploaded_at)
-VALUES($1, $2, $3)
+INSERT INTO ORDERS(order_number, status, uploaded_at, user_id)
+VALUES($1, $2, $3, $4)
 RETURNING id
 `
 
@@ -79,10 +90,16 @@ type SaveOrderParams struct {
 	OrderNumber string
 	Status      string
 	UploadedAt  time.Time
+	UserID      int32
 }
 
 func (q *Queries) SaveOrder(ctx context.Context, arg SaveOrderParams) (int32, error) {
-	row := q.db.QueryRowContext(ctx, saveOrder, arg.OrderNumber, arg.Status, arg.UploadedAt)
+	row := q.db.QueryRowContext(ctx, saveOrder,
+		arg.OrderNumber,
+		arg.Status,
+		arg.UploadedAt,
+		arg.UserID,
+	)
 	var id int32
 	err := row.Scan(&id)
 	return id, err

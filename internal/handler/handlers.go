@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"gophermart/internal/auth"
 	"gophermart/internal/config"
 	"gophermart/internal/loger"
 	"gophermart/internal/services"
@@ -143,7 +144,23 @@ func (h *Handler) SaveOrder(res http.ResponseWriter, req *http.Request) {
 
 		orderNumber := string(body)
 
-		h.Srv.SaveOrder(req.Context(), orderNumber)
+		err = h.Srv.SaveOrder(req.Context(), orderNumber, req.Context().Value(auth.UserIDKey).(int32))
+		if err == services.ErrOrderByUserLoaded {
+			// Статус
+			res.WriteHeader(http.StatusOK)
+			return
+		} else if err == services.ErrOrderLoaded {
+			http.Error(res, err.Error(), http.StatusConflict)
+			return
+		} else if err == services.ErrIncorrectOrderNumberFormat {
+			//402
+			http.Error(res, err.Error(), http.StatusUnprocessableEntity)
+			return
+		} else if err != nil { // Все остальные ошибки
+			loger.Log.Error("handlers.go", zap.String("Function SaveOrder", err.Error()))
+			http.Error(res, err.Error(), http.StatusBadRequest)
+			return
+		}
 		// Статус 202
 		res.WriteHeader(http.StatusAccepted)
 

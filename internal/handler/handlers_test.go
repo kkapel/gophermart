@@ -83,7 +83,9 @@ func TestHandler(t *testing.T) {
 		// 1. Регестрируем пользователя и получаем статус 200
 		// 2. Делаем повторный запрос на регистрацию с такими же данными и получаем ошибку 409.
 		// 3. Проверяем хэндлер авторизации
+
 		t.Run(test.name, func(t *testing.T) {
+
 			// чистим таблицы
 			_, err := database.GetSqlDb().Exec("TRUNCATE TABLE users RESTART IDENTITY CASCADE")
 			if err != nil {
@@ -124,6 +126,7 @@ func TestHandler(t *testing.T) {
 
 			assert.Equal(t, test.want.code, resultResponseAuth.StatusCode)
 			assert.NotEmpty(t, resultResponseAuth.Header.Get("Authorization"), "Authorization should not be empty")
+			//token := resultResponseAuth.Header.Get("Authorization")
 			// Отправим неверный логин и пароль
 			requestAuthUser401 := httptest.NewRequest(http.MethodPost, handler.Cfg.RunAddress, strings.NewReader(test.err401.body))
 			postRecorderAuth401 := httptest.NewRecorder()
@@ -132,6 +135,8 @@ func TestHandler(t *testing.T) {
 			resultResponseAuth401 := postRecorderAuth401.Result()
 			defer resultResponseAuth401.Body.Close()
 			assert.Equal(t, test.err401.code, resultResponseAuth401.StatusCode)
+
+			// Далее проверяем хэндлер POST /api/user/orders
 
 		})
 	}

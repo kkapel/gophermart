@@ -33,6 +33,8 @@ var (
 	TokenParsingError             = errors.New("TokenParsingError")
 	ErrTokenIsNotValid            = errors.New("TokenIsNotValid")
 	ErrUserIDNotFound             = errors.New("UserIDNotFound")
+	ErrOrderByUserLoaded          = errors.New("The order has been loaded by this user")
+	ErrOrderLoaded                = errors.New("The order has been loaded by other user")
 )
 
 func CreateGophermartService(conn *sql.DB) *GophermartService {
@@ -105,7 +107,7 @@ func (s *GophermartService) AuthUser(ctx context.Context, login string, password
 }
 
 // Функция сохранения номера заказа
-func (s *GophermartService) SaveOrder(ctx context.Context, orderNumber string) error {
+func (s *GophermartService) SaveOrder(ctx context.Context, orderNumber string, userID int32) error {
 	// Делаем проверку, что пришло число
 	_, err := strconv.Atoi(orderNumber)
 	if err != nil {
@@ -117,41 +119,54 @@ func (s *GophermartService) SaveOrder(ctx context.Context, orderNumber string) e
 		return ErrIncorrectOrderNumberFormat
 	}
 
+	// Проверяем что заказ еще не добавлен
+	id, err := s.queries.GetUserIDByOrder(ctx, orderNumber)
+	if err != nil {
+		return err
+	}
+
+	if id == userID {
+		return ErrOrderByUserLoaded
+	} else if id != 0 { // Заказ есть, но загружен другим пользователем
+		return ErrOrderLoaded
+	}
+
 	// Сохраняем номер заказа в БД
 	s.queries.SaveOrder(ctx, db.SaveOrderParams{
 		OrderNumber: orderNumber,
 		Status:      "NEW", // Новый заказ
 		UploadedAt:  time.Now(),
+		UserID:      userID,
 	})
 
 	return nil
 }
 
 // Функция проверки токена
-func CheckToken(tokenString string) error {
+func CheckToken(tokenString string) (int32, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims,
 		func(t *jwt.Token) (interface{}, error) {
 			return []byte(SecretKey), nil
 		})
 	if err != nil {
-		return TokenParsingError
+		return 0, TokenParsingError
 	}
 
 	if !token.Valid {
 		loger.Log.Info("gophermart.go", zap.String("Func CheckToken", "Token is not valid"))
 
-		return ErrTokenIsNotValid
+		return 0, ErrTokenIsNotValid
 	}
 
 	//Если userID не заполнен
 	if claims.UserID < 1 {
 		loger.Log.Info("gophermart.go", zap.String("Func CheckToken", "Token is not valid. UserID is empty"))
-		return ErrUserIDNotFound
+		return 0, ErrUserIDNotFound
 	}
 
 	loger.Log.Info("gophermart.go", zap.String("Func CheckToken", "Token is valid"))
-	return nil
+	return claims.UserID, nil
 }
 
 // Функция генерации токена

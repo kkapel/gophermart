@@ -13,5 +13,7 @@ create table if not exists orders(
     order_number varchar(50) NOT NULL,
     status varchar(20) NOT NULL,
     uploaded_at TIMESTAMPTZ NOT NULL ,
-    user_id INTEGER NOT NULL
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    
+    UNIQUE (order_number, user_id)
 );
