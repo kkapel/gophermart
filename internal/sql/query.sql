@@ -5,8 +5,8 @@ SELECT * FROM USERS;
 INSERT INTO USERS (login, pass_hash) VALUES ($1, $2)
 RETURNING id;
 
--- name: GetPassword :one
-SELECT pass_hash FROM USERS WHERE login = $1;
+-- name: GetPassword :many
+SELECT pass_hash, id FROM USERS WHERE login = $1;
 
 -- name: SaveOrder :one
 INSERT INTO ORDERS(order_number, status, uploaded_at)

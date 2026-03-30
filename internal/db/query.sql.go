@@ -37,15 +37,36 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
-const getPassword = `-- name: GetPassword :one
-SELECT pass_hash FROM USERS WHERE login = $1
+const getPassword = `-- name: GetPassword :many
+SELECT pass_hash, id FROM USERS WHERE login = $1
 `
 
-func (q *Queries) GetPassword(ctx context.Context, login string) (string, error) {
-	row := q.db.QueryRowContext(ctx, getPassword, login)
-	var pass_hash string
-	err := row.Scan(&pass_hash)
-	return pass_hash, err
+type GetPasswordRow struct {
+	PassHash string
+	ID       int32
+}
+
+func (q *Queries) GetPassword(ctx context.Context, login string) ([]GetPasswordRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPassword, login)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPasswordRow
+	for rows.Next() {
+		var i GetPasswordRow
+		if err := rows.Scan(&i.PassHash, &i.ID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const saveOrder = `-- name: SaveOrder :one

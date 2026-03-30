@@ -75,26 +75,33 @@ func (s *GophermartService) RegisterUser(ctx context.Context, login string, pass
 }
 
 // Функция проверки пользователя
-func (s *GophermartService) AuthUser(ctx context.Context, login string, password string) (bool, error) {
+func (s *GophermartService) AuthUser(ctx context.Context, login string, password string) (bool, string, error) {
 
 	//Получаем хэш-пароль из бд
-	hashPassword, err := s.queries.GetPassword(ctx, login)
+	rows, err := s.queries.GetPassword(ctx, login)
 	if err != nil {
-		return false, err
+		return false, "", err
+	}
+
+	// Если не нашли пароль в бд
+	if len(rows) == 0 {
+		return false, "", ErrPasswordIncorrect
 	}
 
 	// Проверяем хэш
-	userAuth, err := CheckPassword(password, hashPassword)
+	userAuth, err := CheckPassword(password, rows[0].PassHash)
 
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 
-	if userAuth {
-		return true, nil
-	} else {
-		return false, ErrPasswordIncorrect
+	if !userAuth {
+		return false, "", ErrPasswordIncorrect
 	}
+
+	token, err := generateToken(rows[0].ID)
+
+	return true, token, err
 }
 
 // Функция сохранения номера заказа

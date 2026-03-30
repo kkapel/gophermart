@@ -102,7 +102,7 @@ func (h *Handler) UserAuth(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		auth, err := h.Srv.AuthUser(req.Context(), userRegister.Login, userRegister.Password)
+		auth, token, err := h.Srv.AuthUser(req.Context(), userRegister.Login, userRegister.Password)
 
 		//Ошибка логин/пароль
 		if err == services.ErrPasswordIncorrect {
@@ -115,6 +115,8 @@ func (h *Handler) UserAuth(res http.ResponseWriter, req *http.Request) {
 		}
 
 		if auth {
+			// Заполняем хедер "Authorization"
+			res.Header().Set("Authorization", "Bearer "+token)
 			res.WriteHeader(http.StatusOK)
 			return
 		}

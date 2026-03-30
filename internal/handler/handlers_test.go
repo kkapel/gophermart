@@ -21,11 +21,16 @@ func TestHandler(t *testing.T) {
 	type err409 struct {
 		code int
 	}
-	tests := []struct {
-		name string
-		want want
+	type err401 struct {
+		code int
 		body string
-		err  err409
+	}
+	tests := []struct {
+		name   string
+		want   want
+		body   string
+		err    err409
+		err401 err401
 	}{
 		{
 			name: "Register test",
@@ -36,6 +41,10 @@ func TestHandler(t *testing.T) {
 			body: `{"login": "User12345", "password": "Test123456789"}`,
 			err: err409{
 				code: 409,
+			},
+			err401: err401{
+				code: 401,
+				body: `{"login": "User12345FAULT", "password": "Test123456789FAULT"}`,
 			},
 		},
 	}
@@ -106,6 +115,23 @@ func TestHandler(t *testing.T) {
 			assert.Equal(t, test.err.code, resultResponse409.StatusCode)
 
 			// Далее проверяем хэндлер POST /api/user/login
+			requestAuthUser := httptest.NewRequest(http.MethodPost, handler.Cfg.RunAddress, strings.NewReader(test.body))
+			postRecorderAuth := httptest.NewRecorder()
+
+			handler.UserAuth(postRecorderAuth, requestAuthUser)
+			resultResponseAuth := postRecorderAuth.Result()
+			defer resultResponseAuth.Body.Close()
+
+			assert.Equal(t, test.want.code, resultResponseAuth.StatusCode)
+			assert.NotEmpty(t, resultResponseAuth.Header.Get("Authorization"), "Authorization should not be empty")
+			// Отправим неверный логин и пароль
+			requestAuthUser401 := httptest.NewRequest(http.MethodPost, handler.Cfg.RunAddress, strings.NewReader(test.err401.body))
+			postRecorderAuth401 := httptest.NewRecorder()
+			handler.UserAuth(postRecorderAuth401, requestAuthUser401)
+
+			resultResponseAuth401 := postRecorderAuth401.Result()
+			defer resultResponseAuth401.Body.Close()
+			assert.Equal(t, test.err401.code, resultResponseAuth401.StatusCode)
 
 		})
 	}
