@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"context"
+	"gophermart/internal/auth"
 	"gophermart/internal/config"
 	db "gophermart/internal/db/connections"
 	"gophermart/internal/services"
@@ -25,15 +27,20 @@ func TestHandler(t *testing.T) {
 		code int
 		body string
 	}
+	type order struct {
+		body string
+		code int
+	}
 	tests := []struct {
 		name   string
 		want   want
 		body   string
 		err    err409
 		err401 err401
+		order  order
 	}{
 		{
-			name: "Register test",
+			name: "Main test",
 			want: want{
 				code:        200,
 				contentType: "application/json",
@@ -45,6 +52,10 @@ func TestHandler(t *testing.T) {
 			err401: err401{
 				code: 401,
 				body: `{"login": "User12345FAULT", "password": "Test123456789FAULT"}`,
+			},
+			order: order{
+				body: "12345678903",
+				code: 202,
 			},
 		},
 	}
@@ -83,11 +94,16 @@ func TestHandler(t *testing.T) {
 		// 1. Регестрируем пользователя и получаем статус 200
 		// 2. Делаем повторный запрос на регистрацию с такими же данными и получаем ошибку 409.
 		// 3. Проверяем хэндлер авторизации
+		// 4. Загружаем заказ
 
 		t.Run(test.name, func(t *testing.T) {
 
 			// чистим таблицы
 			_, err := database.GetSqlDb().Exec("TRUNCATE TABLE users RESTART IDENTITY CASCADE")
+			if err != nil {
+				t.Fatalf("failed to truncate table: %v", err)
+			}
+			_, err = database.GetSqlDb().Exec("TRUNCATE TABLE orders RESTART IDENTITY CASCADE")
 			if err != nil {
 				t.Fatalf("failed to truncate table: %v", err)
 			}
@@ -137,6 +153,18 @@ func TestHandler(t *testing.T) {
 			assert.Equal(t, test.err401.code, resultResponseAuth401.StatusCode)
 
 			// Далее проверяем хэндлер POST /api/user/orders
+			requestOrder := httptest.NewRequest(http.MethodPost, handler.Cfg.RunAddress, strings.NewReader(test.order.body))
+			//requestOrder.Header.Set("Authorization", token)
+			ctx := context.WithValue(requestOrder.Context(), auth.UserIDKey, int32(1))
+			requestOrder = requestOrder.WithContext(ctx)
+			postRecorderOrder := httptest.NewRecorder()
+
+			handler.SaveOrder(postRecorderOrder, requestOrder)
+			resultOrder := postRecorderOrder.Result()
+			t.Logf("Response Body: %s", postRecorderOrder.Body.String()) // Выводим тело ответа
+			defer resultOrder.Body.Close()
+
+			assert.Equal(t, test.order.code, resultOrder.StatusCode)
 
 		})
 	}

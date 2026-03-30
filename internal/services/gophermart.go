@@ -121,7 +121,7 @@ func (s *GophermartService) SaveOrder(ctx context.Context, orderNumber string, u
 
 	// Проверяем что заказ еще не добавлен
 	id, err := s.queries.GetUserIDByOrder(ctx, orderNumber)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
 
