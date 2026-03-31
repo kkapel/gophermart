@@ -5,6 +5,7 @@
 package db
 
 import (
+	"database/sql"
 	"time"
 )
 
@@ -14,6 +15,7 @@ type Order struct {
 	Status      string
 	UploadedAt  time.Time
 	UserID      int32
+	Accrual     sql.NullInt32
 }
 
 type User struct {
