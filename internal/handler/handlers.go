@@ -175,6 +175,35 @@ func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
 		loger.Log.Info("handlers.go", zap.String("Function GetOrders", "Starts function"))
 
 		// Вызываем метод получения списка заказов
+		orders, err := h.Srv.GetOrders(req.Context(), req.Context().Value(auth.UserIDKey).(int32))
+
+		if err == services.ErrOrderListIsEmpty {
+			loger.Log.Error("handlers.go", zap.String("Function GetOrders", err.Error()))
+			res.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		if err != nil {
+			// 500
+			loger.Log.Error("handlers.go", zap.String("Function GetOrders", err.Error()))
+
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		resp, err := json.Marshal(orders)
+
+		if err != nil {
+			loger.Log.Error("handlers.go", zap.String("Function GetOrders", err.Error()))
+
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		res.Header().Set("content-type", "application/json")
+		res.WriteHeader(http.StatusOK)
+		loger.Log.Info("handlers.go", zap.String("result", string(resp)))
+		res.Write(resp)
 
 	default:
 		errorResponse(res)

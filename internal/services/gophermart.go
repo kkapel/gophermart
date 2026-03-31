@@ -23,8 +23,8 @@ type Claims struct {
 	UserID int32
 }
 
-type Orders struct {
-	number      int32     `json:"number"`
+type Order struct {
+	number      string    `json:"number"`
 	status      string    `json:"status"`
 	accrual     int32     `json:"accrual"`
 	uploaded_at time.Time `json:"uploaded_at"`
@@ -42,6 +42,7 @@ var (
 	ErrUserIDNotFound             = errors.New("UserIDNotFound")
 	ErrOrderByUserLoaded          = errors.New("The order has been loaded by this user")
 	ErrOrderLoaded                = errors.New("The order has been loaded by other user")
+	ErrOrderListIsEmpty           = errors.New("Order list is empty")
 )
 
 func CreateGophermartService(conn *sql.DB) *GophermartService {
@@ -149,10 +150,31 @@ func (s *GophermartService) SaveOrder(ctx context.Context, orderNumber string, u
 	return nil
 }
 
-func (s *GophermartService) GetOrders(ctx context.Context) ([]Orders, error) {
+func (s *GophermartService) GetOrders(ctx context.Context, userID int32) (*[]Order, error) {
 
 	// Вызываем модуль БД
-	return nil, nil
+	ordersDB, err := s.queries.GetOrdersByUsers(ctx, userID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// БД вернула пустой SELECT
+	if ordersDB == nil {
+		return nil, ErrOrderListIsEmpty
+	}
+
+	var orders []Order
+
+	for i, order := range ordersDB {
+		orders[i] = Order{
+			number:      order.OrderNumber,
+			status:      order.Status,
+			accrual:     order.Accrual.Int32,
+			uploaded_at: order.UploadedAt,
+		}
+	}
+	return &orders, nil
 }
 
 // Функция проверки токена

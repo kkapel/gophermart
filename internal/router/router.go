@@ -67,6 +67,7 @@ func Run() error {
 	r.Group(func(r chi.Router) {
 		r.Use(auth.AuthMiddleware)
 		r.Post("/api/user/orders", h.SaveOrder)
+		r.Get("/api/user/orders", h.GetOrders)
 	})
 
 	return srv.ListenAndServe()
