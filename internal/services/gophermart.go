@@ -116,6 +116,10 @@ func (s *GophermartService) AuthUser(ctx context.Context, login string, password
 
 // Функция сохранения номера заказа
 func (s *GophermartService) SaveOrder(ctx context.Context, orderNumber string, userID int32) error {
+	// Логирование для автотестов
+
+	loger.Log.Info("Save order service", zap.String("orderNumber", orderNumber))
+	loger.Log.Info("Save order service", zap.Int32("userID", userID))
 	// Делаем проверку, что пришло число
 	_, err := strconv.Atoi(orderNumber)
 	if err != nil {
