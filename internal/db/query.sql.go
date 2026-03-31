@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
 
@@ -24,6 +25,45 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 	for rows.Next() {
 		var i User
 		if err := rows.Scan(&i.ID, &i.Login, &i.PassHash); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getOrdersByUsers = `-- name: GetOrdersByUsers :many
+SELECT order_number, status, uploaded_at, accrual FROM orders WHERE user_id = $1
+`
+
+type GetOrdersByUsersRow struct {
+	OrderNumber string
+	Status      string
+	UploadedAt  time.Time
+	Accrual     sql.NullInt32
+}
+
+func (q *Queries) GetOrdersByUsers(ctx context.Context, userID int32) ([]GetOrdersByUsersRow, error) {
+	rows, err := q.db.QueryContext(ctx, getOrdersByUsers, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetOrdersByUsersRow
+	for rows.Next() {
+		var i GetOrdersByUsersRow
+		if err := rows.Scan(
+			&i.OrderNumber,
+			&i.Status,
+			&i.UploadedAt,
+			&i.Accrual,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

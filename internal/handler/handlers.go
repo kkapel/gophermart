@@ -169,6 +169,19 @@ func (h *Handler) SaveOrder(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodGet:
+		loger.Log.Info("handlers.go", zap.String("Function GetOrders", "Starts function"))
+
+		// Вызываем метод получения списка заказов
+
+	default:
+		errorResponse(res)
+	}
+
+}
+
 // Функция валидации входной структуры
 func validateUserRegister(userRegister *UserRegister) error {
 	validator := validator.New()

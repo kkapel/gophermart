@@ -23,6 +23,13 @@ type Claims struct {
 	UserID int32
 }
 
+type Orders struct {
+	number      int32     `json:"number"`
+	status      string    `json:"status"`
+	accrual     int32     `json:"accrual"`
+	uploaded_at time.Time `json:"uploaded_at"`
+}
+
 const TokenExp = time.Hour * 3
 const SecretKey = "testKey1"
 
@@ -140,6 +147,12 @@ func (s *GophermartService) SaveOrder(ctx context.Context, orderNumber string, u
 	})
 
 	return nil
+}
+
+func (s *GophermartService) GetOrders(ctx context.Context) ([]Orders, error) {
+
+	// Вызываем модуль БД
+	return nil, nil
 }
 
 // Функция проверки токена
