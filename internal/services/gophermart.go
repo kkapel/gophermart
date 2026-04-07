@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"gophermart/internal/accrual"
 	db "gophermart/internal/db"
 	"gophermart/internal/loger"
 	"strconv"
@@ -16,6 +17,7 @@ import (
 
 type GophermartService struct {
 	queries *db.Queries
+	accrual *accrual.Accrual
 }
 
 type Claims struct {
@@ -32,6 +34,8 @@ type Order struct {
 
 const TokenExp = time.Hour * 3
 const SecretKey = "testKey1"
+const period = 10
+const batchSize = 100
 
 var (
 	ErrUniqueLogin                = errors.New("Login already exists")
@@ -45,11 +49,13 @@ var (
 	ErrOrderListIsEmpty           = errors.New("Order list is empty")
 )
 
-func CreateGophermartService(conn *sql.DB) *GophermartService {
-	return &GophermartService{
-		queries: db.New(conn),
-	}
+func CreateGophermartService(conn *sql.DB, accrual *accrual.Accrual) *GophermartService {
 
+	gophermart := &GophermartService{
+		queries: db.New(conn),
+		accrual: accrual,
+	}
+	return gophermart
 }
 
 func (s *GophermartService) RegisterUser(ctx context.Context, login string, password string) (string, error) {
@@ -247,4 +253,29 @@ func CheckLuhnAlgorithm(orderNumber string) bool {
 		sum += digit
 	}
 	return sum%10 == 0
+}
+
+func (s *GophermartService) GetOrdersForAccrual() {
+	ticker := time.NewTicker(period * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			// Получаем новые заказы для отправки в accrual
+			args := db.GetOrdersForAccrualParams{
+				Status: "NEW",
+				Limit:  batchSize,
+			}
+			orders, err := s.queries.GetOrdersForAccrual(context.Background(), args)
+			if err != nil {
+				// В случае ошибки просто логируем
+				loger.Log.Error(err.Error())
+			} else {
+				ordersChan := make(chan string)
+				defer close(ordersChan)
+				ordersChan <- orders[1]
+			}
+		}
+	}
 }

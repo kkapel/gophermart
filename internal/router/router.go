@@ -1,6 +1,7 @@
 package router
 
 import (
+	"gophermart/internal/accrual"
 	"gophermart/internal/auth"
 	"gophermart/internal/config"
 	db "gophermart/internal/db/connections"
@@ -39,7 +40,8 @@ func Run() error {
 		return err
 	}
 
-	service := services.CreateGophermartService(db.GetSqlDb())
+	accrual := accrual.NewAccrual(cfg.AccrualSystemAddress)
+	service := services.CreateGophermartService(db.GetSqlDb(), accrual)
 
 	h := &handler.Handler{
 		Cfg: cfg,
@@ -69,6 +71,8 @@ func Run() error {
 		r.Post("/api/user/orders", h.SaveOrder)
 		r.Get("/api/user/orders", h.GetOrders)
 	})
+
+	service.GetOrdersForAccrual() // Фоновое задание на запросы в accrual
 
 	return srv.ListenAndServe()
 }

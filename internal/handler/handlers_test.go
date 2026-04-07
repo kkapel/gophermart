@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"gophermart/internal/accrual"
 	"gophermart/internal/auth"
 	"gophermart/internal/config"
 	db "gophermart/internal/db/connections"
@@ -62,8 +63,9 @@ func TestHandler(t *testing.T) {
 
 	// Создаем конфиги и репозитории
 	cfg := &config.Config{
-		RunAddress:  "http://localhost:8080",
-		DataBaseURI: "postgresql://postgres:admin@localhost:5432/postgres?sslmode=disable", // поправить
+		RunAddress:           "http://localhost:8080",
+		DataBaseURI:          "postgresql://postgres:admin@localhost:5432/postgres?sslmode=disable", // поправить
+		AccrualSystemAddress: "http://localhost:8080",
 	}
 
 	// Проверяем путь к миграциям
@@ -81,7 +83,8 @@ func TestHandler(t *testing.T) {
 		t.Fatalf("Failed to connect to DB: %v", err)
 	}
 	// слой сервиса
-	srv := services.CreateGophermartService(database.GetSqlDb())
+	accrual := accrual.NewAccrual(cfg.AccrualSystemAddress)
+	srv := services.CreateGophermartService(database.GetSqlDb(), accrual)
 
 	handler := &Handler{
 		Cfg: cfg,

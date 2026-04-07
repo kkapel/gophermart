@@ -77,6 +77,40 @@ func (q *Queries) GetOrdersByUsers(ctx context.Context, userID int32) ([]GetOrde
 	return items, nil
 }
 
+const getOrdersForAccrual = `-- name: GetOrdersForAccrual :many
+SELECT order_number FROM orders WHERE status = $1
+order by uploaded_at
+LIMIT $2
+`
+
+type GetOrdersForAccrualParams struct {
+	Status string
+	Limit  int32
+}
+
+func (q *Queries) GetOrdersForAccrual(ctx context.Context, arg GetOrdersForAccrualParams) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getOrdersForAccrual, arg.Status, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var order_number string
+		if err := rows.Scan(&order_number); err != nil {
+			return nil, err
+		}
+		items = append(items, order_number)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPassword = `-- name: GetPassword :many
 SELECT pass_hash, id FROM USERS WHERE login = $1
 `

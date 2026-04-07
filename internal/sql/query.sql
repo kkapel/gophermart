@@ -18,3 +18,8 @@ SELECT user_id FROM ORDERS WHERE order_number = $1;
 
 -- name: GetOrdersByUsers :many
 SELECT order_number, status, uploaded_at, accrual FROM orders WHERE user_id = $1;
+
+-- name: GetOrdersForAccrual :many
+SELECT order_number FROM orders WHERE status = $1
+order by uploaded_at
+LIMIT $2;
