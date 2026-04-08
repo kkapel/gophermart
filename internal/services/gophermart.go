@@ -259,6 +259,16 @@ func (s *GophermartService) GetOrdersForAccrual() {
 	ticker := time.NewTicker(period * time.Second)
 	defer ticker.Stop()
 
+	const numWorkers = 5
+	ordersChan := make(chan accrual.InputAccrualType, numWorkers)
+	resultChan := make(chan accrual.OrderWithAccrual, numWorkers)
+	errChan := make(chan error)
+
+	// Запускаем go-рутины
+	for i := 0; i < 5; i++ {
+		go accrual.SaveOrder(ordersChan, resultChan, errChan, s.accrual.URL)
+	}
+
 	for {
 		select {
 		case <-ticker.C:
@@ -272,9 +282,12 @@ func (s *GophermartService) GetOrdersForAccrual() {
 				// В случае ошибки просто логируем
 				loger.Log.Error(err.Error())
 			} else {
-				ordersChan := make(chan string)
+
 				defer close(ordersChan)
-				ordersChan <- orders[1]
+				ordersChan <- accrual.InputAccrualType{
+					Order: orders[1], // Заменить
+					Mu:    &s.accrual.Mu,
+				}
 			}
 		}
 	}
