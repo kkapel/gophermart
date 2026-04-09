@@ -21,12 +21,13 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		token := strings.Trim(auth, "Bearer ")
+		token := strings.TrimPrefix(auth, "Bearer ")
 
 		userID, err := services.CheckToken(token) // Вызываем метод проверки токена
 
 		if err != nil {
-
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
 		}
 
 		ctx := context.WithValue(r.Context(), UserIDKey, userID)

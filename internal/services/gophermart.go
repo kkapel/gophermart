@@ -26,10 +26,10 @@ type Claims struct {
 }
 
 type Order struct {
-	number      string    `json:"number"`
-	status      string    `json:"status"`
-	accrual     int32     `json:"accrual"`
-	uploaded_at time.Time `json:"uploaded_at"`
+	Number     string    `json:"number"`
+	Status     string    `json:"status"`
+	Accrual    int32     `json:"accrual,omitempty"`
+	UploadedAt time.Time `json:"uploaded_at"`
 }
 
 const TokenExp = time.Hour * 3
@@ -171,18 +171,18 @@ func (s *GophermartService) GetOrders(ctx context.Context, userID int32) (*[]Ord
 	}
 
 	// БД вернула пустой SELECT
-	if ordersDB == nil {
+	if len(ordersDB) == 0 {
 		return nil, ErrOrderListIsEmpty
 	}
 
-	var orders []Order
+	orders := make([]Order, len(ordersDB))
 
 	for i, order := range ordersDB {
 		orders[i] = Order{
-			number:      order.OrderNumber,
-			status:      order.Status,
-			accrual:     order.Accrual.Int32,
-			uploaded_at: order.UploadedAt,
+			Number:     order.OrderNumber,
+			Status:     order.Status,
+			Accrual:    order.Accrual.Int32,
+			UploadedAt: order.UploadedAt,
 		}
 	}
 	return &orders, nil
