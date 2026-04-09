@@ -70,6 +70,7 @@ func Run() error {
 		r.Use(auth.AuthMiddleware)
 		r.Post("/api/user/orders", h.SaveOrder)
 		r.Get("/api/user/orders", h.GetOrders)
+		//r.Get("/api/user/balance",)
 	})
 
 	go service.GetOrdersForAccrual() // Фоновое задание на запросы в accrual

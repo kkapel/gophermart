@@ -27,7 +27,7 @@ type AccrualResponse struct {
 
 type OrderWithAccrual struct {
 	Order   string
-	Accrual int32
+	Accrual int64
 	Status  string
 }
 
@@ -94,7 +94,7 @@ func SaveOrder(orders chan InputAccrualType, results chan<- OrderWithAccrual, er
 					// Пишем в канал результатов
 					results <- OrderWithAccrual{
 						Order:   order,
-						Accrual: int32(accrualResponse.Accrual),
+						Accrual: int64(accrualResponse.Accrual),
 						Status:  "PROCESSED",
 					}
 				case "REGISTERED":

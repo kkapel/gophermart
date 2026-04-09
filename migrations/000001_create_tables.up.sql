@@ -14,7 +14,8 @@ create table if not exists orders(
     status varchar(20) NOT NULL,
     uploaded_at TIMESTAMPTZ NOT NULL ,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    accrual INTEGER,
+    accrual  BIGINT,
+    withdraw BIGINT,
     
     UNIQUE (order_number, user_id)
 );

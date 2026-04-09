@@ -211,6 +211,17 @@ func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
 
 }
 
+// Получение баланса
+func (h *Handler) GetUserBalance(res http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodGet:
+		loger.Log.Info("handlers.go", zap.String("Function GetUserBalance", "Starts function"))
+
+	default:
+		errorResponse(res)
+	}
+}
+
 // Функция валидации входной структуры
 func validateUserRegister(userRegister *UserRegister) error {
 	validator := validator.New()

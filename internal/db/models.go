@@ -15,7 +15,8 @@ type Order struct {
 	Status      string
 	UploadedAt  time.Time
 	UserID      int32
-	Accrual     sql.NullInt32
+	Accrual     sql.NullInt64
+	Withdraw    sql.NullInt64
 }
 
 type User struct {

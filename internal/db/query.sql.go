@@ -46,7 +46,7 @@ type GetOrdersByUsersRow struct {
 	OrderNumber string
 	Status      string
 	UploadedAt  time.Time
-	Accrual     sql.NullInt32
+	Accrual     sql.NullInt64
 }
 
 func (q *Queries) GetOrdersByUsers(ctx context.Context, userID int32) ([]GetOrdersByUsersRow, error) {
@@ -205,7 +205,7 @@ RETURNING id
 
 type UpdateOrderStatusParams struct {
 	Status      string
-	Accrual     sql.NullInt32
+	Accrual     sql.NullInt64
 	OrderNumber string
 }
 

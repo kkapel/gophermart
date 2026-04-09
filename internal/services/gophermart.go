@@ -29,7 +29,7 @@ type Claims struct {
 type Order struct {
 	Number     string    `json:"number"`
 	Status     string    `json:"status"`
-	Accrual    int32     `json:"accrual,omitempty"`
+	Accrual    int64     `json:"accrual,omitempty"`
 	UploadedAt time.Time `json:"uploaded_at"`
 }
 
@@ -182,7 +182,7 @@ func (s *GophermartService) GetOrders(ctx context.Context, userID int32) (*[]Ord
 		orders[i] = Order{
 			Number:     order.OrderNumber,
 			Status:     order.Status,
-			Accrual:    order.Accrual.Int32,
+			Accrual:    order.Accrual.Int64,
 			UploadedAt: order.UploadedAt,
 		}
 	}
@@ -311,8 +311,8 @@ func (s *GophermartService) GetOrdersForAccrual() {
 			// Пишем результат в БД
 			update := db.UpdateOrderStatusParams{
 				Status: resultOrder.Status,
-				Accrual: sql.NullInt32{
-					Int32: resultOrder.Accrual,
+				Accrual: sql.NullInt64{
+					Int64: resultOrder.Accrual,
 					Valid: resultOrder.Accrual != 0}, // Если accrual = 0, то пишем null в бд
 				OrderNumber: resultOrder.Order,
 			}
@@ -326,6 +326,7 @@ func (s *GophermartService) GetOrdersForAccrual() {
 		case <-ctx.Done():
 			close(ordersChan)
 			loger.Log.Info("GetOrdersForAccrual func", zap.String("ctx Done", ""))
+			return
 		}
 
 	}
