@@ -284,9 +284,11 @@ func (s *GophermartService) GetOrdersForAccrual() {
 			} else {
 
 				defer close(ordersChan)
-				ordersChan <- accrual.InputAccrualType{
-					Order: orders[1], // Заменить
-					Mu:    &s.accrual.Mu,
+				for _, order := range orders {
+					ordersChan <- accrual.InputAccrualType{
+						Order:        order,
+						AccrualMutex: s.accrual.AccrualMutex,
+					}
 				}
 			}
 		}
