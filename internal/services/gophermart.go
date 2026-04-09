@@ -261,9 +261,9 @@ func (s *GophermartService) GetOrdersForAccrual() {
 	defer ticker.Stop()
 
 	const numWorkers = 5
-	ordersChan := make(chan accrual.InputAccrualType, numWorkers)
+	ordersChan := make(chan accrual.InputAccrualType, batchSize)
 	resultChan := make(chan accrual.OrderWithAccrual, numWorkers)
-	errChan := make(chan error)
+	errChan := make(chan error, numWorkers)
 	ctx := context.Background()
 
 	// Запускаем go-рутины
