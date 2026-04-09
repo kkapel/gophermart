@@ -35,7 +35,7 @@ type Order struct {
 
 const TokenExp = time.Hour * 3
 const SecretKey = "testKey1"
-const period = 10
+const period = 1
 const batchSize = 100
 
 var (
