@@ -8,6 +8,7 @@ import (
 	db "gophermart/internal/db"
 	"gophermart/internal/loger"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -263,11 +264,24 @@ func (s *GophermartService) GetOrdersForAccrual() {
 	ordersChan := make(chan accrual.InputAccrualType, numWorkers)
 	resultChan := make(chan accrual.OrderWithAccrual, numWorkers)
 	errChan := make(chan error)
+	ctx := context.Background()
 
 	// Запускаем go-рутины
+	var wg sync.WaitGroup
 	for i := 0; i < 5; i++ {
-		go accrual.SaveOrder(ordersChan, resultChan, errChan, s.accrual.URL)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			accrual.SaveOrder(ordersChan, resultChan, errChan, s.accrual.URL)
+		}()
+
 	}
+
+	go func() {
+		wg.Wait()
+		close(resultChan)
+		close(errChan)
+	}()
 
 	for {
 		select {
@@ -277,13 +291,12 @@ func (s *GophermartService) GetOrdersForAccrual() {
 				Status: "NEW",
 				Limit:  batchSize,
 			}
-			orders, err := s.queries.GetOrdersForAccrual(context.Background(), args)
+			orders, err := s.queries.GetOrdersForAccrual(ctx, args)
 			if err != nil {
 				// В случае ошибки просто логируем
 				loger.Log.Error(err.Error())
 			} else {
 
-				defer close(ordersChan)
 				for _, order := range orders {
 					ordersChan <- accrual.InputAccrualType{
 						Order:        order,
@@ -291,6 +304,29 @@ func (s *GophermartService) GetOrdersForAccrual() {
 					}
 				}
 			}
+		case err := <-errChan:
+			// Обработка ошибок
+			loger.Log.Error("Error channel in GetOrdersForAccrual func", zap.String("error", err.Error()))
+		case resultOrder := <-resultChan:
+			// Пишем результат в БД
+			update := db.UpdateOrderStatusParams{
+				Status: resultOrder.Status,
+				Accrual: sql.NullInt32{
+					Int32: resultOrder.Accrual,
+					Valid: resultOrder.Accrual != 0}, // Если accrual = 0, то пишем null в бд
+				OrderNumber: resultOrder.Order,
+			}
+			row, errorUpdate := s.queries.UpdateOrderStatus(ctx, update)
+			if errorUpdate != nil {
+				loger.Log.Error("GetOrdersForAccrual func", zap.String("Update db error", errorUpdate.Error()))
+			}
+			if row == 0 {
+				loger.Log.Error("GetOrdersForAccrual func", zap.String("Update db error", "Update statement return 0 rows"))
+			}
+		case <-ctx.Done():
+			close(ordersChan)
+			loger.Log.Info("GetOrdersForAccrual func", zap.String("ctx Done", ""))
 		}
+
 	}
 }

@@ -195,3 +195,23 @@ func (q *Queries) SaveUser(ctx context.Context, arg SaveUserParams) (int32, erro
 	err := row.Scan(&id)
 	return id, err
 }
+
+const updateOrderStatus = `-- name: UpdateOrderStatus :one
+UPDATE orders SET status = $1,
+accrual = $2
+WHERE order_number = $3
+RETURNING id
+`
+
+type UpdateOrderStatusParams struct {
+	Status      string
+	Accrual     sql.NullInt32
+	OrderNumber string
+}
+
+func (q *Queries) UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, updateOrderStatus, arg.Status, arg.Accrual, arg.OrderNumber)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
+}
