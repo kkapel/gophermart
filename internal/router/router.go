@@ -72,7 +72,7 @@ func Run() error {
 		r.Get("/api/user/orders", h.GetOrders)
 	})
 
-	service.GetOrdersForAccrual() // Фоновое задание на запросы в accrual
+	go service.GetOrdersForAccrual() // Фоновое задание на запросы в accrual
 
 	return srv.ListenAndServe()
 }
