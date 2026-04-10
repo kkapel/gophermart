@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 
+	"github.com/shopspring/decimal"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -60,6 +61,8 @@ func CreateConfig() (*Config, error) {
 	} else {
 		accrualSystemAddress = "http://localhost:8000"
 	}
+
+	decimal.MarshalJSONWithoutQuotes = true // Отдельная настройка для корректного ответа json
 
 	return &Config{
 		RunAddress:           runAddress,
