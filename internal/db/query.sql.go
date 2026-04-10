@@ -38,6 +38,17 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
+const getBalance = `-- name: GetBalance :one
+select sum(accrual) as sum_order_number from orders o where user_id = $1
+`
+
+func (q *Queries) GetBalance(ctx context.Context, userID int32) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getBalance, userID)
+	var sum_order_number int64
+	err := row.Scan(&sum_order_number)
+	return sum_order_number, err
+}
+
 const getOrdersByUsers = `-- name: GetOrdersByUsers :many
 SELECT order_number, status, uploaded_at, accrual FROM orders WHERE user_id = $1
 `
@@ -152,6 +163,19 @@ func (q *Queries) GetUserIDByOrder(ctx context.Context, orderNumber string) (int
 	var user_id int32
 	err := row.Scan(&user_id)
 	return user_id, err
+}
+
+const getWithdraws = `-- name: GetWithdraws :one
+SELECT COALESCE(SUM(withdraw), 0)::BIGINT as sum_withdraw
+FROM withdraw
+WHERE order_number IN (SELECT order_number FROM ORDERS WHERE user_id = $1)
+`
+
+func (q *Queries) GetWithdraws(ctx context.Context, userID int32) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getWithdraws, userID)
+	var sum_withdraw int64
+	err := row.Scan(&sum_withdraw)
+	return sum_withdraw, err
 }
 
 const saveOrder = `-- name: SaveOrder :one

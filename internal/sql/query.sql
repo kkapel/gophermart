@@ -29,3 +29,11 @@ UPDATE orders SET status = $1,
 accrual = $2
 WHERE order_number = $3
 RETURNING id;
+
+-- name: GetBalance :one
+select sum(accrual) as sum_order_number from orders o where user_id = $1;
+
+-- name: GetWithdraws :one
+SELECT COALESCE(SUM(withdraw), 0)::BIGINT as sum_withdraw
+FROM withdraw
+WHERE order_number IN (SELECT order_number FROM ORDERS WHERE user_id = $1);

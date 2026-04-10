@@ -13,6 +13,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 )
 
@@ -31,6 +32,11 @@ type Order struct {
 	Status     string    `json:"status"`
 	Accrual    int64     `json:"accrual,omitempty"`
 	UploadedAt time.Time `json:"uploaded_at"`
+}
+
+type UserBalance struct {
+	Current   decimal.Decimal `json:"current"`
+	Withdrawn decimal.Decimal `json:"withdrawn"`
 }
 
 const TokenExp = time.Hour * 3
@@ -312,8 +318,8 @@ func (s *GophermartService) GetOrdersForAccrual() {
 			update := db.UpdateOrderStatusParams{
 				Status: resultOrder.Status,
 				Accrual: sql.NullInt64{
-					Int64: resultOrder.Accrual,
-					Valid: resultOrder.Accrual != 0}, // Если accrual = 0, то пишем null в бд
+					Int64: FromDecimalToDB(resultOrder.Accrual),
+					Valid: FromDecimalToDB(resultOrder.Accrual) != 0}, // Если accrual = 0, то пишем null в бд
 				OrderNumber: resultOrder.Order,
 			}
 			row, errorUpdate := s.queries.UpdateOrderStatus(ctx, update)
@@ -330,4 +336,28 @@ func (s *GophermartService) GetOrdersForAccrual() {
 		}
 
 	}
+}
+
+func (s *GophermartService) GetUserBalance(ctx context.Context, userID int32) (*UserBalance, error) {
+	// Вызов БД
+	current, err := s.queries.GetBalance(ctx, userID)
+	withdrawn, err := s.queries.GetWithdraws(ctx, userID)
+
+	if err != nil {
+		loger.Log.Error("GetUserBalance func", zap.String("db GetBalance error", err.Error()))
+		return nil, err
+	}
+
+	return &UserBalance{
+		Current:   ToDecimalFromDB(current),
+		Withdrawn: ToDecimalFromDB(withdrawn),
+	}, nil
+}
+
+func ToDecimalFromDB(inputNumber int64) decimal.Decimal {
+	return decimal.New(inputNumber, -2) //Делим на 100
+}
+
+func FromDecimalToDB(inputNumber decimal.Decimal) int64 {
+	return inputNumber.Mul(decimal.NewFromInt(100)).IntPart()
 }

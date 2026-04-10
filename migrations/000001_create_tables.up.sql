@@ -14,8 +14,13 @@ create table if not exists orders(
     status varchar(20) NOT NULL,
     uploaded_at TIMESTAMPTZ NOT NULL ,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    accrual  BIGINT,
-    withdraw BIGINT,
-    
+    accrual  BIGINT, -- для хранения сотых
     UNIQUE (order_number, user_id)
+);
+
+create table if not exists withdraw(
+    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    order_number varchar(50) NOT NULL REFERENCES orders(order_number) ON DELETE CASCADE,
+    withdraw BIGINT, 
+    processed_at TIMESTAMPTZ
 );

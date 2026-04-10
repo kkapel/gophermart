@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 type Accrual struct {
@@ -20,14 +22,14 @@ type AccrualMutex struct {
 }
 
 type AccrualResponse struct {
-	Order   string `json:"order"`
-	Status  string `json:"status"`
-	Accrual int    `json:"accrual"` // Баллы accrual
+	Order   string          `json:"order"`
+	Status  string          `json:"status"`
+	Accrual decimal.Decimal `json:"accrual"`
 }
 
 type OrderWithAccrual struct {
 	Order   string
-	Accrual int64
+	Accrual decimal.Decimal
 	Status  string
 }
 
@@ -94,7 +96,7 @@ func SaveOrder(orders chan InputAccrualType, results chan<- OrderWithAccrual, er
 					// Пишем в канал результатов
 					results <- OrderWithAccrual{
 						Order:   order,
-						Accrual: int64(accrualResponse.Accrual),
+						Accrual: accrualResponse.Accrual,
 						Status:  "PROCESSED",
 					}
 				case "REGISTERED":
@@ -102,26 +104,26 @@ func SaveOrder(orders chan InputAccrualType, results chan<- OrderWithAccrual, er
 					// Возвращаем статус в БД
 					results <- OrderWithAccrual{
 						Order:   order,
-						Accrual: 0,
+						Accrual: decimal.NewFromInt32(0),
 						Status:  "REGISTERED",
 					}
 				case "PROCESSING":
 					results <- OrderWithAccrual{
 						Order:   order,
-						Accrual: 0,
+						Accrual: decimal.NewFromInt32(0),
 						Status:  "PROCESSING",
 					}
 				case "INVALID":
 					results <- OrderWithAccrual{
 						Order:   order,
-						Accrual: 0,
+						Accrual: decimal.NewFromInt32(0),
 						Status:  "INVALID",
 					}
 				}
 			case http.StatusNoContent: //заказ не зарегистрирован в системе расчёта
 				results <- OrderWithAccrual{
 					Order:   order,
-					Accrual: 0,
+					Accrual: decimal.NewFromInt32(0),
 					Status:  "NOT_REGISTRED",
 				}
 			case http.StatusTooManyRequests: // Превышено количество запросов к сервису

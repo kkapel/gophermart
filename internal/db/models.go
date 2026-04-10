@@ -16,7 +16,6 @@ type Order struct {
 	UploadedAt  time.Time
 	UserID      int32
 	Accrual     sql.NullInt64
-	Withdraw    sql.NullInt64
 }
 
 type User struct {
@@ -26,4 +25,11 @@ type User struct {
 	Login string
 	// Хэш-пароль
 	PassHash string
+}
+
+type Withdraw struct {
+	ID          int32
+	OrderNumber string
+	Withdraw    sql.NullInt64
+	ProcessedAt sql.NullTime
 }

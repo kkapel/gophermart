@@ -202,7 +202,7 @@ func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
 
 		res.Header().Set("content-type", "application/json")
 		res.WriteHeader(http.StatusOK)
-		loger.Log.Info("handlers.go", zap.String("result", string(resp)))
+		loger.Log.Info("handlers.go", zap.String("Function GetOrders result", string(resp)))
 		res.Write(resp)
 
 	default:
@@ -216,6 +216,27 @@ func (h *Handler) GetUserBalance(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:
 		loger.Log.Info("handlers.go", zap.String("Function GetUserBalance", "Starts function"))
+
+		userBalance, err := h.Srv.GetUserBalance(req.Context(), req.Context().Value(auth.UserIDKey).(int32))
+
+		if err != nil {
+			loger.Log.Error("handlers.go", zap.String("Function GetUserBalance", err.Error()))
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		resp, err := json.Marshal(userBalance)
+
+		if err != nil {
+			loger.Log.Error("handlers.go", zap.String("Function GetUserBalance", err.Error()))
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		res.Header().Set("content-type", "application/json")
+		res.WriteHeader(http.StatusOK)
+		loger.Log.Info("handlers.go", zap.String("Function GetUserBalance result", string(resp)))
+		res.Write(resp)
 
 	default:
 		errorResponse(res)
