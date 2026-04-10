@@ -57,6 +57,8 @@ func CreateConfig() (*Config, error) {
 		accrualSystemAddress = accrualSystemAddressFlag
 	} else if accrualSystemAddressEnv != "" {
 		accrualSystemAddress = accrualSystemAddressEnv
+	} else {
+		accrualSystemAddress = "http://localhost:8000"
 	}
 
 	return &Config{
