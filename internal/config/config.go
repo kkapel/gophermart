@@ -19,7 +19,7 @@ func CreateConfig() (*Config, error) {
 	//Используем Viper для получения флагов и переменных окружения
 	pflag.String("a", "localhost:8080", "Run address flag")
 	pflag.String("d", "", "Database uri flag")
-	pflag.String("r", "localhost:8080", "Accrual system address")
+	pflag.String("r", "", "Accrual system address")
 
 	if !pflag.CommandLine.Parsed() {
 		pflag.Parse()
