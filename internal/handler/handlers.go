@@ -19,8 +19,8 @@ type Handler struct {
 }
 
 type UserRegister struct {
-	Login    string `json:"login" validate:"required,min=6"`
-	Password string `json:"password" validate:"required,min=8"`
+	Login    string `json:"login" validate:"required"`
+	Password string `json:"password" validate:"required"`
 }
 
 func (h *Handler) RegisterUser(res http.ResponseWriter, req *http.Request) {
