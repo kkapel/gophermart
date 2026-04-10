@@ -28,10 +28,10 @@ type Claims struct {
 }
 
 type Order struct {
-	Number     string    `json:"number"`
-	Status     string    `json:"status"`
-	Accrual    int64     `json:"accrual,omitempty"`
-	UploadedAt time.Time `json:"uploaded_at"`
+	Number     string          `json:"number"`
+	Status     string          `json:"status"`
+	Accrual    decimal.Decimal `json:"accrual,omitempty"`
+	UploadedAt time.Time       `json:"uploaded_at"`
 }
 
 type UserBalance struct {
@@ -188,7 +188,7 @@ func (s *GophermartService) GetOrders(ctx context.Context, userID int32) (*[]Ord
 		orders[i] = Order{
 			Number:     order.OrderNumber,
 			Status:     order.Status,
-			Accrual:    order.Accrual.Int64,
+			Accrual:    ToDecimalFromDB(order.Accrual.Int64),
 			UploadedAt: order.UploadedAt,
 		}
 	}
@@ -355,7 +355,7 @@ func (s *GophermartService) GetUserBalance(ctx context.Context, userID int32) (*
 }
 
 func ToDecimalFromDB(inputNumber int64) decimal.Decimal {
-	return decimal.New(inputNumber, -2) //Делим на 100
+	return decimal.New(inputNumber, -2)
 }
 
 func FromDecimalToDB(inputNumber decimal.Decimal) int64 {
