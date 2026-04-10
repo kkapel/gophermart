@@ -15,7 +15,7 @@ create table if not exists orders(
     uploaded_at TIMESTAMPTZ NOT NULL ,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     accrual  BIGINT, -- для хранения сотых
-    UNIQUE (order_number, user_id)
+    UNIQUE (order_number)
 );
 
 create table if not exists withdraw(
