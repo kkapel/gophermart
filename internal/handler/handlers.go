@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 )
 
@@ -21,6 +22,11 @@ type Handler struct {
 type UserRegister struct {
 	Login    string `json:"login" validate:"required"`
 	Password string `json:"password" validate:"required"`
+}
+
+type WithdrawRequest struct {
+	Order string          `json:"order"`
+	Sum   decimal.Decimal `json:"sum"`
 }
 
 func (h *Handler) RegisterUser(res http.ResponseWriter, req *http.Request) {
@@ -237,6 +243,36 @@ func (h *Handler) GetUserBalance(res http.ResponseWriter, req *http.Request) {
 		res.WriteHeader(http.StatusOK)
 		loger.Log.Info("handlers.go", zap.String("Function GetUserBalance result", string(resp)))
 		res.Write(resp)
+
+	default:
+		errorResponse(res)
+	}
+}
+
+// Запрос на списание средств
+func (h *Handler) Withdraw(res http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodPost:
+		loger.Log.Info("handlers.go", zap.String("Function Withdraw", "Starts function"))
+
+		body, err := io.ReadAll(req.Body)
+
+		if err != nil {
+			loger.Log.Error("handlers.go", zap.String("Function Withdraw", "Can not read request body"))
+			http.Error(res, "Cannot read request body", http.StatusBadRequest)
+			return
+		}
+		defer req.Body.Close()
+
+		var withdraw WithdrawRequest
+		if err := json.Unmarshal(body, &withdraw); err != nil {
+			// Ошибка 400
+			loger.Log.Error("handlers.go", zap.String("Function Withdraw", "Can not unmarshal request body"))
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Вызов слоя сервиса
 
 	default:
 		errorResponse(res)
