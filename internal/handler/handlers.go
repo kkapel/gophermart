@@ -273,6 +273,7 @@ func (h *Handler) Withdraw(res http.ResponseWriter, req *http.Request) {
 		}
 
 		// Вызов слоя сервиса
+		//h.Srv.
 
 	default:
 		errorResponse(res)
