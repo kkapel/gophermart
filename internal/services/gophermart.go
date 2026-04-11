@@ -41,7 +41,7 @@ type UserBalance struct {
 
 const TokenExp = time.Hour * 3
 const SecretKey = "testKey1"
-const period = 1
+const period = 200
 const batchSize = 100
 
 var (
@@ -264,7 +264,7 @@ func CheckLuhnAlgorithm(orderNumber string) bool {
 }
 
 func (s *GophermartService) GetOrdersForAccrual() {
-	ticker := time.NewTicker(period * time.Second)
+	ticker := time.NewTicker(period * time.Millisecond)
 	defer ticker.Stop()
 
 	const numWorkers = 5
