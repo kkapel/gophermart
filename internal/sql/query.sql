@@ -31,7 +31,9 @@ WHERE order_number = $3
 RETURNING id;
 
 -- name: GetBalance :one
-select sum(accrual) as sum_order_number from orders o where user_id = $1;
+select coalesce(sum(accrual),0)::BIGINT as sum_order_number from orders 
+where user_id = $1
+AND status = 'PROCESSED';
 
 -- name: GetWithdraws :one
 SELECT COALESCE(SUM(withdraw), 0)::BIGINT as sum_withdraw
