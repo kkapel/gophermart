@@ -275,11 +275,17 @@ func (h *Handler) Withdraw(res http.ResponseWriter, req *http.Request) {
 		// Вызов слоя сервиса
 		err = h.Srv.Withdraw(req.Context(), req.Context().Value(auth.UserIDKey).(int32), withdraw.Order, withdraw.Sum)
 
-		if err != services.ErrNotEnoughAccrualPoints {
-			// 402
-			loger.Log.Error("handlers.go", zap.String("Function Withdraw", err.Error()))
-			http.Error(res, err.Error(), http.StatusPaymentRequired)
-			return
+		if err != nil {
+			if err == services.ErrNotEnoughAccrualPoints {
+				// 402
+				loger.Log.Error("handlers.go", zap.String("Function Withdraw", err.Error()))
+				http.Error(res, err.Error(), http.StatusPaymentRequired)
+				return
+			} else {
+				loger.Log.Error("handlers.go", zap.String("Function Withdraw", err.Error()))
+				http.Error(res, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 
 		// 200
