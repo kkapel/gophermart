@@ -32,4 +32,5 @@ type Withdraw struct {
 	OrderNumber string
 	Withdraw    sql.NullInt64
 	ProcessedAt sql.NullTime
+	UserID      int32
 }

@@ -38,7 +38,7 @@ AND status = 'PROCESSED';
 -- name: GetWithdraws :one
 SELECT COALESCE(SUM(withdraw), 0)::BIGINT as sum_withdraw
 FROM withdraw
-WHERE order_number IN (SELECT order_number FROM ORDERS WHERE user_id = $1);
+WHERE user_id = $1;
 
 -- name: WithdrawDB :one
 SELECT WITHDRAW(

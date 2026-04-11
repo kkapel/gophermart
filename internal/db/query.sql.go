@@ -39,7 +39,9 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 }
 
 const getBalance = `-- name: GetBalance :one
-select sum(accrual) as sum_order_number from orders o where user_id = $1
+select coalesce(sum(accrual),0)::BIGINT as sum_order_number from orders 
+where user_id = $1
+AND status = 'PROCESSED'
 `
 
 func (q *Queries) GetBalance(ctx context.Context, userID int32) (int64, error) {
@@ -168,7 +170,7 @@ func (q *Queries) GetUserIDByOrder(ctx context.Context, orderNumber string) (int
 const getWithdraws = `-- name: GetWithdraws :one
 SELECT COALESCE(SUM(withdraw), 0)::BIGINT as sum_withdraw
 FROM withdraw
-WHERE order_number IN (SELECT order_number FROM ORDERS WHERE user_id = $1)
+WHERE user_id = $1
 `
 
 func (q *Queries) GetWithdraws(ctx context.Context, userID int32) (int64, error) {
