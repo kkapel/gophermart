@@ -38,6 +38,40 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
+const getAllWithdrawals = `-- name: GetAllWithdrawals :many
+SELECT order_number, withdraw, processed_at FROM withdraw
+WHERE user_id = $1
+`
+
+type GetAllWithdrawalsRow struct {
+	OrderNumber string
+	Withdraw    sql.NullInt64
+	ProcessedAt sql.NullTime
+}
+
+func (q *Queries) GetAllWithdrawals(ctx context.Context, userID int32) ([]GetAllWithdrawalsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllWithdrawals, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllWithdrawalsRow
+	for rows.Next() {
+		var i GetAllWithdrawalsRow
+		if err := rows.Scan(&i.OrderNumber, &i.Withdraw, &i.ProcessedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getBalance = `-- name: GetBalance :one
 select coalesce(sum(accrual),0)::BIGINT as sum_order_number from orders 
 where user_id = $1

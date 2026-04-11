@@ -45,3 +45,7 @@ SELECT WITHDRAW(
     input_order_number := $1,
     input_withdraw := $2,
     input_user_id := $3);
+
+-- name: GetAllWithdrawals :many
+SELECT order_number, withdraw, processed_at FROM withdraw
+WHERE user_id = $1;    

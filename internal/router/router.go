@@ -72,6 +72,7 @@ func Run() error {
 		r.Post("/api/user/balance/withdraw", h.Withdraw)
 		r.Get("/api/user/orders", h.GetOrders)
 		r.Get("/api/user/balance", h.GetUserBalance)
+		r.Get("/api/user/withdrawals", h.GetWithdrawals)
 	})
 
 	go service.GetOrdersForAccrual() // Фоновое задание на запросы в accrual

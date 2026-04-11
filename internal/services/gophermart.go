@@ -39,6 +39,12 @@ type UserBalance struct {
 	Withdrawn decimal.Decimal `json:"withdrawn"`
 }
 
+type Withdrawals struct {
+	Order       string          `json:"order"`
+	Sum         decimal.Decimal `json:"sum"`
+	ProccesedAt time.Time       `json:"processed_at"`
+}
+
 const TokenExp = time.Hour * 3
 const SecretKey = "testKey1"
 const period = 200
@@ -55,6 +61,7 @@ var (
 	ErrOrderLoaded                = errors.New("The order has been loaded by other user")
 	ErrOrderListIsEmpty           = errors.New("Order list is empty")
 	ErrNotEnoughAccrualPoints     = errors.New("Not enough accrual points")
+	ErrNotExistsWithdrawals       = errors.New("Withdrawals not exists")
 )
 
 func CreateGophermartService(conn *sql.DB, accrual *accrual.Accrual) *GophermartService {
@@ -377,6 +384,28 @@ func (s *GophermartService) Withdraw(ctx context.Context, userID int32, orderNum
 		return ErrNotEnoughAccrualPoints
 	}
 	return nil
+}
+
+func (s *GophermartService) GetWithdrawals(ctx context.Context, userID int32) (*[]Withdrawals, error) {
+	withdrawals, err := s.queries.GetAllWithdrawals(ctx, userID)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNotExistsWithdrawals
+		}
+		loger.Log.Error("GetWithdrawals", zap.String("GetWithdrawals db error", err.Error()))
+		return nil, err
+	}
+
+	result := make([]Withdrawals, len(withdrawals))
+	for i, v := range withdrawals {
+		result[i].Order = v.OrderNumber
+		result[i].ProccesedAt = v.ProcessedAt.Time
+		result[i].Sum = ToDecimalFromDB(v.Withdraw.Int64)
+	}
+
+	return &result, nil
+
 }
 
 func ToDecimalFromDB(inputNumber int64) decimal.Decimal {

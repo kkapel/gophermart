@@ -296,6 +296,39 @@ func (h *Handler) Withdraw(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func (h *Handler) GetWithdrawals(res http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodGet:
+		// Вызываем слой сервиса
+		result, err := h.Srv.GetWithdrawals(req.Context(), req.Context().Value(auth.UserIDKey).(int32))
+
+		if err != nil {
+			if err == services.ErrNotExistsWithdrawals {
+				res.WriteHeader(http.StatusNoContent)
+				return
+			}
+			loger.Log.Error("handlers.go", zap.String("Function GetWithdrawals", err.Error()))
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		resp, err := json.Marshal(result)
+
+		if err != nil {
+			loger.Log.Error("handlers.go", zap.String("Function GetWithdrawals", err.Error()))
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		res.Header().Set("content-type", "application/json")
+		res.WriteHeader(http.StatusOK)
+		res.Write(resp)
+	default:
+		errorResponse(res)
+	}
+
+}
+
 // Функция валидации входной структуры
 func validateUserRegister(userRegister *UserRegister) error {
 	validator := validator.New()
