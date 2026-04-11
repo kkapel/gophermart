@@ -266,14 +266,24 @@ func (h *Handler) Withdraw(res http.ResponseWriter, req *http.Request) {
 
 		var withdraw WithdrawRequest
 		if err := json.Unmarshal(body, &withdraw); err != nil {
-			// Ошибка 400
+			// Ошибка 500
 			loger.Log.Error("handlers.go", zap.String("Function Withdraw", "Can not unmarshal request body"))
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		// Вызов слоя сервиса
-		//h.Srv.
+		err = h.Srv.Withdraw(req.Context(), req.Context().Value(auth.UserIDKey).(int32), withdraw.Order, withdraw.Sum)
+
+		if err != services.ErrNotEnoughAccrualPoints {
+			// 402
+			loger.Log.Error("handlers.go", zap.String("Function Withdraw", err.Error()))
+			http.Error(res, err.Error(), http.StatusPaymentRequired)
+			return
+		}
+
+		// 200
+		res.WriteHeader(http.StatusOK)
 
 	default:
 		errorResponse(res)

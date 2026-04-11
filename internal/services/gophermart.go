@@ -54,6 +54,7 @@ var (
 	ErrOrderByUserLoaded          = errors.New("The order has been loaded by this user")
 	ErrOrderLoaded                = errors.New("The order has been loaded by other user")
 	ErrOrderListIsEmpty           = errors.New("Order list is empty")
+	ErrNotEnoughAccrualPoints     = errors.New("Not enough accrual points")
 )
 
 func CreateGophermartService(conn *sql.DB, accrual *accrual.Accrual) *GophermartService {
@@ -352,6 +353,27 @@ func (s *GophermartService) GetUserBalance(ctx context.Context, userID int32) (*
 		Current:   ToDecimalFromDB(current),
 		Withdrawn: ToDecimalFromDB(withdrawn),
 	}, nil
+}
+
+func (s *GophermartService) Withdraw(ctx context.Context, userID int32, orderNumber string, sum decimal.Decimal) error {
+	// Вызов функции на стороне БД
+	ok, err := s.queries.WithdrawDB(ctx,
+		db.WithdrawDBParams{
+			InputOrderNumber: orderNumber,
+			InputUserID:      userID,
+			InputWithdraw:    FromDecimalToDB(sum),
+		})
+	if err != nil {
+		loger.Log.Error("Withdraw func", zap.String("WithdrawDB error", err.Error()))
+		return err
+	}
+
+	if !ok {
+		// Не удалось списать
+		// Не хватает баллов
+		return ErrNotEnoughAccrualPoints
+	}
+	return nil
 }
 
 func ToDecimalFromDB(inputNumber int64) decimal.Decimal {

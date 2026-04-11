@@ -239,3 +239,20 @@ func (q *Queries) UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusPa
 	err := row.Scan(&id)
 	return id, err
 }
+
+const withdrawDB = `-- name: WithdrawDB :one
+SELECT WITHDRAW($1, $2, $3)
+`
+
+type WithdrawDBParams struct {
+	InputOrderNumber string
+	InputWithdraw    int64
+	InputUserID      int32
+}
+
+func (q *Queries) WithdrawDB(ctx context.Context, arg WithdrawDBParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, withdrawDB, arg.InputOrderNumber, arg.InputWithdraw, arg.InputUserID)
+	var withdraw bool
+	err := row.Scan(&withdraw)
+	return withdraw, err
+}

@@ -37,3 +37,6 @@ select sum(accrual) as sum_order_number from orders o where user_id = $1;
 SELECT COALESCE(SUM(withdraw), 0)::BIGINT as sum_withdraw
 FROM withdraw
 WHERE order_number IN (SELECT order_number FROM ORDERS WHERE user_id = $1);
+
+-- name: WithdrawDB :one
+SELECT WITHDRAW($1, $2, $3);
