@@ -241,7 +241,10 @@ func (q *Queries) UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusPa
 }
 
 const withdrawDB = `-- name: WithdrawDB :one
-SELECT WITHDRAW($1, $2, $3)
+SELECT WITHDRAW(
+    input_order_number := $1,
+    input_withdraw := $2,
+    input_user_id := $3)
 `
 
 type WithdrawDBParams struct {

@@ -360,8 +360,8 @@ func (s *GophermartService) Withdraw(ctx context.Context, userID int32, orderNum
 	ok, err := s.queries.WithdrawDB(ctx,
 		db.WithdrawDBParams{
 			InputOrderNumber: orderNumber,
-			InputUserID:      userID,
 			InputWithdraw:    FromDecimalToDB(sum),
+			InputUserID:      userID,
 		})
 	if err != nil {
 		loger.Log.Error("Withdraw func", zap.String("WithdrawDB error", err.Error()))

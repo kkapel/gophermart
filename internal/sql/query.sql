@@ -39,4 +39,7 @@ FROM withdraw
 WHERE order_number IN (SELECT order_number FROM ORDERS WHERE user_id = $1);
 
 -- name: WithdrawDB :one
-SELECT WITHDRAW($1, $2, $3);
+SELECT WITHDRAW(
+    input_order_number := $1,
+    input_withdraw := $2,
+    input_user_id := $3);
