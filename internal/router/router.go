@@ -69,7 +69,7 @@ func Run() error {
 	r.Group(func(r chi.Router) {
 		r.Use(auth.AuthMiddleware)
 		r.Post("/api/user/orders", h.SaveOrder)
-		//r.Post("/api/user/balance/withdraw", )
+		r.Post("/api/user/balance/withdraw", h.Withdraw)
 		r.Get("/api/user/orders", h.GetOrders)
 		r.Get("/api/user/balance", h.GetUserBalance)
 	})
