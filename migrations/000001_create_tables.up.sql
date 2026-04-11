@@ -20,7 +20,7 @@ create table if not exists orders(
 
 create table if not exists withdraw(
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    order_number varchar(50) NOT NULL REFERENCES orders(order_number) ON DELETE CASCADE,
+    order_number varchar(50) NOT NULL,
     withdraw BIGINT, 
     processed_at TIMESTAMPTZ,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE
