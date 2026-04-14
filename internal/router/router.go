@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
 
@@ -48,32 +47,51 @@ func Run() error {
 		Srv: service,
 	}
 
-	r := chi.NewRouter()
+	//r := chi.NewRouter()
+	mux := http.NewServeMux()
+
+	// Роутер
+	// Эндпойнты без аутентификации
+	mux.HandleFunc("POST /api/user/register", h.RegisterUser)
+	mux.HandleFunc("POST /api/user/login", h.UserAuth)
+
+	// Эндпойнты с аутентификацией
+	mux.Handle("POST /api/user/orders", auth.AuthMiddleware(http.HandlerFunc(h.SaveOrder)))
+	mux.Handle("POST /api/user/balance/withdraw", auth.AuthMiddleware(http.HandlerFunc(h.Withdraw)))
+	mux.Handle("GET /api/user/orders", auth.AuthMiddleware(http.HandlerFunc(h.GetOrders)))
+	mux.Handle("GET /api/user/balance", auth.AuthMiddleware(http.HandlerFunc(h.GetUserBalance)))
+	mux.Handle("GET /api/user/withdrawals", auth.AuthMiddleware(http.HandlerFunc(h.GetWithdrawals)))
+
+	logerMux := loger.RequestLogger(mux)
 
 	srv := &http.Server{
 		Addr:         cfg.RunAddress,
-		Handler:      r,
+		Handler:      logerMux,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 
-	r.Use(loger.RequestLogger)
+	/*
+		r.Use(loger.RequestLogger)
 
-	r.Group(func(r chi.Router) {
-		r.Post("/api/user/register", h.RegisterUser)
-		r.Post("/api/user/login", h.UserAuth)
-	})
+		r.Group(func(r chi.Router) {
+			r.Post("/api/user/register", h.RegisterUser)
+			r.Post("/api/user/login", h.UserAuth)
+		})
 
-	// С аутентификацией
-	r.Group(func(r chi.Router) {
-		r.Use(auth.AuthMiddleware)
-		r.Post("/api/user/orders", h.SaveOrder)
-		r.Post("/api/user/balance/withdraw", h.Withdraw)
-		r.Get("/api/user/orders", h.GetOrders)
-		r.Get("/api/user/balance", h.GetUserBalance)
-		r.Get("/api/user/withdrawals", h.GetWithdrawals)
-	})
+		// С аутентификацией
+
+			r.Group(func(r chi.Router) {
+				r.Use(auth.AuthMiddleware)
+				r.Post("/api/user/orders", h.SaveOrder)
+				r.Post("/api/user/balance/withdraw", h.Withdraw)
+				r.Get("/api/user/orders", h.GetOrders)
+				r.Get("/api/user/balance", h.GetUserBalance)
+				r.Get("/api/user/withdrawals", h.GetWithdrawals)
+			})
+
+	*/
 
 	go service.GetOrdersForAccrual() // Фоновое задание на запросы в accrual
 
