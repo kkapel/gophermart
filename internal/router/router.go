@@ -56,11 +56,11 @@ func Run() error {
 	mux.HandleFunc("POST /api/user/login", h.UserAuth)
 
 	// Эндпойнты с аутентификацией
-	mux.Handle("POST /api/user/orders", auth.AuthMiddleware(http.HandlerFunc(h.SaveOrder)))
-	mux.Handle("POST /api/user/balance/withdraw", auth.AuthMiddleware(http.HandlerFunc(h.Withdraw)))
-	mux.Handle("GET /api/user/orders", auth.AuthMiddleware(http.HandlerFunc(h.GetOrders)))
-	mux.Handle("GET /api/user/balance", auth.AuthMiddleware(http.HandlerFunc(h.GetUserBalance)))
-	mux.Handle("GET /api/user/withdrawals", auth.AuthMiddleware(http.HandlerFunc(h.GetWithdrawals)))
+	mux.Handle("POST /api/user/orders", authMiddleware(h.SaveOrder))
+	mux.Handle("POST /api/user/balance/withdraw", authMiddleware(h.Withdraw))
+	mux.Handle("GET /api/user/orders", authMiddleware(h.GetOrders))
+	mux.Handle("GET /api/user/balance", authMiddleware(h.GetUserBalance))
+	mux.Handle("GET /api/user/withdrawals", authMiddleware(h.GetWithdrawals))
 
 	logerMux := loger.RequestLogger(mux)
 
@@ -96,4 +96,9 @@ func Run() error {
 	go service.GetOrdersForAccrual() // Фоновое задание на запросы в accrual
 
 	return srv.ListenAndServe()
+}
+
+func authMiddleware(f func(http.ResponseWriter, *http.Request)) http.Handler {
+
+	return auth.AuthMiddleware(http.HandlerFunc(f))
 }
