@@ -8,10 +8,9 @@ import (
 	"gophermart/internal/handler"
 	"gophermart/internal/loger"
 	"gophermart/internal/services"
+	"log/slog"
 	"net/http"
 	"time"
-
-	"go.uber.org/zap"
 )
 
 func Run() error {
@@ -19,15 +18,14 @@ func Run() error {
 	if err := loger.Initialize("INFO"); err != nil {
 		return err
 	}
-	defer loger.Log.Sync()
 	loger.Log.Info("Router module starts")
 
 	//config.go
 	cfg, err := config.CreateConfig()
 
 	loger.Log.Info("Starting server",
-		zap.String("addr", cfg.RunAddress),
-		zap.String("db", cfg.DataBaseURI))
+		slog.String("addr", cfg.RunAddress),
+		slog.String("db", cfg.DataBaseURI))
 
 	if err != nil {
 		return err

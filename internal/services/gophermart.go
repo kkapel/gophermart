@@ -7,6 +7,7 @@ import (
 	"gophermart/internal/accrual"
 	db "gophermart/internal/db"
 	"gophermart/internal/loger"
+	"log/slog"
 	"strconv"
 	"sync"
 	"time"
@@ -14,7 +15,6 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/shopspring/decimal"
-	"go.uber.org/zap"
 )
 
 type GophermartService struct {
@@ -139,8 +139,8 @@ func (s *GophermartService) AuthUser(ctx context.Context, login string, password
 func (s *GophermartService) SaveOrder(ctx context.Context, orderNumber string, userID int32) error {
 	// Логирование для автотестов
 
-	loger.Log.Info("Save order service", zap.String("orderNumber", orderNumber))
-	loger.Log.Info("Save order service", zap.Int32("userID", userID))
+	loger.Log.Info("Save order service", slog.String("orderNumber", orderNumber))
+	loger.Log.Info("Save order service", slog.Any("userID", userID))
 	// Делаем проверку, что пришло число
 	_, err := strconv.Atoi(orderNumber)
 	if err != nil {
@@ -216,18 +216,18 @@ func CheckToken(tokenString string) (int32, error) {
 	}
 
 	if !token.Valid {
-		loger.Log.Info("gophermart.go", zap.String("Func CheckToken", "Token is not valid"))
+		loger.Log.Info("gophermart.go", slog.String("Func CheckToken", "Token is not valid"))
 
 		return 0, ErrTokenIsNotValid
 	}
 
 	//Если userID не заполнен
 	if claims.UserID < 1 {
-		loger.Log.Info("gophermart.go", zap.String("Func CheckToken", "Token is not valid. UserID is empty"))
+		loger.Log.Info("gophermart.go", slog.String("Func CheckToken", "Token is not valid. UserID is empty"))
 		return 0, ErrUserIDNotFound
 	}
 
-	loger.Log.Info("gophermart.go", zap.String("Func CheckToken", "Token is valid"))
+	loger.Log.Info("gophermart.go", slog.String("Func CheckToken", "Token is valid"))
 	return claims.UserID, nil
 }
 
@@ -321,7 +321,7 @@ func (s *GophermartService) GetOrdersForAccrual() {
 			}
 		case err := <-errChan:
 			// Обработка ошибок
-			loger.Log.Error("Error channel in GetOrdersForAccrual func", zap.String("error", err.Error()))
+			loger.Log.Error("Error channel in GetOrdersForAccrual func", slog.String("error", err.Error()))
 		case resultOrder := <-resultChan:
 			// Пишем результат в БД
 			update := db.UpdateOrderStatusParams{
@@ -333,14 +333,14 @@ func (s *GophermartService) GetOrdersForAccrual() {
 			}
 			row, errorUpdate := s.queries.UpdateOrderStatus(ctx, update)
 			if errorUpdate != nil {
-				loger.Log.Error("GetOrdersForAccrual func", zap.String("Update db error", errorUpdate.Error()))
+				loger.Log.Error("GetOrdersForAccrual func", slog.String("Update db error", errorUpdate.Error()))
 			}
 			if row == 0 {
-				loger.Log.Error("GetOrdersForAccrual func", zap.String("Update db error", "Update statement return 0 rows"))
+				loger.Log.Error("GetOrdersForAccrual func", slog.String("Update db error", "Update statement return 0 rows"))
 			}
 		case <-ctx.Done():
 			close(ordersChan)
-			loger.Log.Info("GetOrdersForAccrual func", zap.String("ctx Done", ""))
+			loger.Log.Info("GetOrdersForAccrual func", slog.String("ctx Done", ""))
 			return
 		}
 
@@ -353,7 +353,7 @@ func (s *GophermartService) GetUserBalance(ctx context.Context, userID int32) (*
 	withdrawn, err := s.queries.GetWithdraws(ctx, userID)
 
 	if err != nil {
-		loger.Log.Error("GetUserBalance func", zap.String("db GetBalance error", err.Error()))
+		loger.Log.Error("GetUserBalance func", slog.String("db GetBalance error", err.Error()))
 		return nil, err
 	}
 
@@ -374,7 +374,7 @@ func (s *GophermartService) Withdraw(ctx context.Context, userID int32, orderNum
 			InputUserID:      userID,
 		})
 	if err != nil {
-		loger.Log.Error("Withdraw func", zap.String("WithdrawDB error", err.Error()))
+		loger.Log.Error("Withdraw func", slog.String("WithdrawDB error", err.Error()))
 		return err
 	}
 
@@ -393,7 +393,7 @@ func (s *GophermartService) GetWithdrawals(ctx context.Context, userID int32) (*
 		if err == sql.ErrNoRows {
 			return nil, ErrNotExistsWithdrawals
 		}
-		loger.Log.Error("GetWithdrawals", zap.String("GetWithdrawals db error", err.Error()))
+		loger.Log.Error("GetWithdrawals", slog.String("GetWithdrawals db error", err.Error()))
 		return nil, err
 	}
 

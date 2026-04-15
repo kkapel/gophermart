@@ -1,13 +1,13 @@
 package loger
 
 import (
+	"log/slog"
 	"net/http"
+	"os"
 	"time"
-
-	"go.uber.org/zap"
 )
 
-var Log *zap.Logger = zap.NewNop()
+var Log *slog.Logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
 type (
 	// берём структуру для хранения сведений об ответе
@@ -37,21 +37,15 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 }
 
 func Initialize(level string) error {
-	lvl, err := zap.ParseAtomicLevel(level)
+	var l slog.Level
 
-	if err != nil {
+	if err := l.UnmarshalText([]byte(level)); err != nil {
 		return err
 	}
 
-	cfg := zap.NewProductionConfig()
-	cfg.Level = lvl
-	zl, err := cfg.Build()
+	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: l})
+	Log = slog.New(handler)
 
-	if err != nil {
-		return err
-	}
-
-	Log = zl
 	return nil
 }
 
@@ -73,12 +67,13 @@ func RequestLogger(h http.Handler) http.Handler {
 		duration := time.Since(start)
 
 		Log.Info("Got incoming HTTP request",
-			zap.String("URI", r.RequestURI),
-			zap.String("Method", r.Method),
-			zap.String("Path", r.URL.Path),
-			zap.Duration("Duration", duration),
-			zap.Int("Status code", responseData.status),
-			zap.Int("size", responseData.size))
+			slog.String("URI", r.RequestURI),
+			slog.String("Method", r.Method),
+			slog.String("Path", r.URL.Path),
+			slog.Duration("Duration", duration),
+			slog.Int("Status code", responseData.status),
+			slog.Int("Size", responseData.size),
+		)
 
 	})
 }

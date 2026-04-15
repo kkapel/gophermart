@@ -7,11 +7,11 @@ import (
 	"gophermart/internal/loger"
 	"gophermart/internal/services"
 	"io"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/shopspring/decimal"
-	"go.uber.org/zap"
 )
 
 type Handler struct {
@@ -32,11 +32,11 @@ type WithdrawRequest struct {
 func (h *Handler) RegisterUser(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodPost:
-		loger.Log.Info("handlers.go", zap.String("Function RegisterUser", "Starts function"))
+		loger.Log.Info("handlers.go", slog.String("Function RegisterUser", "Starts function"))
 		body, err := io.ReadAll(req.Body)
 
 		if err != nil {
-			loger.Log.Error("handlers.go", zap.String("Function RegisterUser", "Can not read request body"))
+			loger.Log.Error("handlers.go", slog.String("Function RegisterUser", "Can not read request body"))
 			http.Error(res, "Cannot read request body", http.StatusBadRequest)
 			return
 		}
@@ -46,14 +46,14 @@ func (h *Handler) RegisterUser(res http.ResponseWriter, req *http.Request) {
 		var userRegister UserRegister
 		if err := json.Unmarshal(body, &userRegister); err != nil {
 			// Ошибка 400
-			loger.Log.Error("handlers.go", zap.String("Function RegisterUser", "Can not unmarshal request body"))
+			loger.Log.Error("handlers.go", slog.String("Function RegisterUser", "Can not unmarshal request body"))
 			http.Error(res, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		if err := validateUserRegister(&userRegister); err != nil {
 			// Ошибка 400
-			loger.Log.Error("handlers.go", zap.String("Function RegisterUser", "Request validate error"))
+			loger.Log.Error("handlers.go", slog.String("Function RegisterUser", "Request validate error"))
 			http.Error(res, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -66,7 +66,7 @@ func (h *Handler) RegisterUser(res http.ResponseWriter, req *http.Request) {
 			http.Error(res, err.Error(), http.StatusConflict)
 			return
 		} else if err != nil {
-			loger.Log.Error("handlers.go", zap.String("Function RegisterUser", err.Error()))
+			loger.Log.Error("handlers.go", slog.String("Function RegisterUser", err.Error()))
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 		}
 
@@ -84,11 +84,11 @@ func (h *Handler) RegisterUser(res http.ResponseWriter, req *http.Request) {
 func (h *Handler) UserAuth(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodPost:
-		loger.Log.Info("handlers.go", zap.String("Function UserAuth", "Starts function"))
+		loger.Log.Info("handlers.go", slog.String("Function UserAuth", "Starts function"))
 		body, err := io.ReadAll(req.Body)
 
 		if err != nil {
-			loger.Log.Error("handlers.go", zap.String("Function UserAuth", "Can not read request body"))
+			loger.Log.Error("handlers.go", slog.String("Function UserAuth", "Can not read request body"))
 			http.Error(res, "Cannot read request body", http.StatusBadRequest)
 			return
 		}
@@ -97,14 +97,14 @@ func (h *Handler) UserAuth(res http.ResponseWriter, req *http.Request) {
 		var userRegister UserRegister
 		if err := json.Unmarshal(body, &userRegister); err != nil {
 			// Ошибка 400
-			loger.Log.Error("handlers.go", zap.String("Function UserAuth", "Can not unmarshal request body"))
+			loger.Log.Error("handlers.go", slog.String("Function UserAuth", "Can not unmarshal request body"))
 			http.Error(res, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		if err := validateUserRegister(&userRegister); err != nil {
 			// Ошибка 400
-			loger.Log.Error("handlers.go", zap.String("Function UserAuth", "Request validate error"))
+			loger.Log.Error("handlers.go", slog.String("Function UserAuth", "Request validate error"))
 			http.Error(res, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -117,7 +117,7 @@ func (h *Handler) UserAuth(res http.ResponseWriter, req *http.Request) {
 			http.Error(res, err.Error(), http.StatusUnauthorized)
 			return
 		} else if err != nil {
-			loger.Log.Error("handlers.go", zap.String("Function UserAuth", err.Error()))
+			loger.Log.Error("handlers.go", slog.String("Function UserAuth", err.Error()))
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 		}
 
@@ -138,11 +138,11 @@ func (h *Handler) UserAuth(res http.ResponseWriter, req *http.Request) {
 func (h *Handler) SaveOrder(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodPost:
-		loger.Log.Info("handlers.go", zap.String("Function SaveOrder", "Starts function"))
+		loger.Log.Info("handlers.go", slog.String("Function SaveOrder", "Starts function"))
 		body, err := io.ReadAll(req.Body)
 
 		if err != nil {
-			loger.Log.Error("handlers.go", zap.String("Function SaveOrder", "Can not read request body"))
+			loger.Log.Error("handlers.go", slog.String("Function SaveOrder", "Can not read request body"))
 			http.Error(res, "Cannot read request body", http.StatusBadRequest)
 			return
 		}
@@ -163,7 +163,7 @@ func (h *Handler) SaveOrder(res http.ResponseWriter, req *http.Request) {
 			http.Error(res, err.Error(), http.StatusUnprocessableEntity)
 			return
 		} else if err != nil { // Все остальные ошибки
-			loger.Log.Error("handlers.go", zap.String("Function SaveOrder", err.Error()))
+			loger.Log.Error("handlers.go", slog.String("Function SaveOrder", err.Error()))
 			http.Error(res, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -178,20 +178,20 @@ func (h *Handler) SaveOrder(res http.ResponseWriter, req *http.Request) {
 func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:
-		loger.Log.Info("handlers.go", zap.String("Function GetOrders", "Starts function"))
+		loger.Log.Info("handlers.go", slog.String("Function GetOrders", "Starts function"))
 
 		// Вызываем метод получения списка заказов
 		orders, err := h.Srv.GetOrders(req.Context(), req.Context().Value(auth.UserIDKey).(int32))
 
 		if err == services.ErrOrderListIsEmpty {
-			loger.Log.Error("handlers.go", zap.String("Function GetOrders", err.Error()))
+			loger.Log.Error("handlers.go", slog.String("Function GetOrders", err.Error()))
 			res.WriteHeader(http.StatusNoContent)
 			return
 		}
 
 		if err != nil {
 			// 500
-			loger.Log.Error("handlers.go", zap.String("Function GetOrders", err.Error()))
+			loger.Log.Error("handlers.go", slog.String("Function GetOrders", err.Error()))
 
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
@@ -200,7 +200,7 @@ func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
 		resp, err := json.Marshal(orders)
 
 		if err != nil {
-			loger.Log.Error("handlers.go", zap.String("Function GetOrders", err.Error()))
+			loger.Log.Error("handlers.go", slog.String("Function GetOrders", err.Error()))
 
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
@@ -208,7 +208,7 @@ func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
 
 		res.Header().Set("content-type", "application/json")
 		res.WriteHeader(http.StatusOK)
-		loger.Log.Info("handlers.go", zap.String("Function GetOrders result", string(resp)))
+		loger.Log.Info("handlers.go", slog.String("Function GetOrders result", string(resp)))
 		res.Write(resp)
 
 	default:
@@ -221,12 +221,12 @@ func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
 func (h *Handler) GetUserBalance(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:
-		loger.Log.Info("handlers.go", zap.String("Function GetUserBalance", "Starts function"))
+		loger.Log.Info("handlers.go", slog.String("Function GetUserBalance", "Starts function"))
 
 		userBalance, err := h.Srv.GetUserBalance(req.Context(), req.Context().Value(auth.UserIDKey).(int32))
 
 		if err != nil {
-			loger.Log.Error("handlers.go", zap.String("Function GetUserBalance", err.Error()))
+			loger.Log.Error("handlers.go", slog.String("Function GetUserBalance", err.Error()))
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -234,14 +234,14 @@ func (h *Handler) GetUserBalance(res http.ResponseWriter, req *http.Request) {
 		resp, err := json.Marshal(userBalance)
 
 		if err != nil {
-			loger.Log.Error("handlers.go", zap.String("Function GetUserBalance", err.Error()))
+			loger.Log.Error("handlers.go", slog.String("Function GetUserBalance", err.Error()))
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		res.Header().Set("content-type", "application/json")
 		res.WriteHeader(http.StatusOK)
-		loger.Log.Info("handlers.go", zap.String("Function GetUserBalance result", string(resp)))
+		loger.Log.Info("handlers.go", slog.String("Function GetUserBalance result", string(resp)))
 		res.Write(resp)
 
 	default:
@@ -253,12 +253,12 @@ func (h *Handler) GetUserBalance(res http.ResponseWriter, req *http.Request) {
 func (h *Handler) Withdraw(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodPost:
-		loger.Log.Info("handlers.go", zap.String("Function Withdraw", "Starts function"))
+		loger.Log.Info("handlers.go", slog.String("Function Withdraw", "Starts function"))
 
 		body, err := io.ReadAll(req.Body)
 
 		if err != nil {
-			loger.Log.Error("handlers.go", zap.String("Function Withdraw", "Can not read request body"))
+			loger.Log.Error("handlers.go", slog.String("Function Withdraw", "Can not read request body"))
 			http.Error(res, "Cannot read request body", http.StatusBadRequest)
 			return
 		}
@@ -267,7 +267,7 @@ func (h *Handler) Withdraw(res http.ResponseWriter, req *http.Request) {
 		var withdraw WithdrawRequest
 		if err := json.Unmarshal(body, &withdraw); err != nil {
 			// Ошибка 500
-			loger.Log.Error("handlers.go", zap.String("Function Withdraw", "Can not unmarshal request body"))
+			loger.Log.Error("handlers.go", slog.String("Function Withdraw", "Can not unmarshal request body"))
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -278,11 +278,11 @@ func (h *Handler) Withdraw(res http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			if err == services.ErrNotEnoughAccrualPoints {
 				// 402
-				loger.Log.Error("handlers.go", zap.String("Function Withdraw", err.Error()))
+				loger.Log.Error("handlers.go", slog.String("Function Withdraw", err.Error()))
 				http.Error(res, err.Error(), http.StatusPaymentRequired)
 				return
 			} else {
-				loger.Log.Error("handlers.go", zap.String("Function Withdraw", err.Error()))
+				loger.Log.Error("handlers.go", slog.String("Function Withdraw", err.Error()))
 				http.Error(res, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -307,7 +307,7 @@ func (h *Handler) GetWithdrawals(res http.ResponseWriter, req *http.Request) {
 				res.WriteHeader(http.StatusNoContent)
 				return
 			}
-			loger.Log.Error("handlers.go", zap.String("Function GetWithdrawals", err.Error()))
+			loger.Log.Error("handlers.go", slog.String("Function GetWithdrawals", err.Error()))
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -315,7 +315,7 @@ func (h *Handler) GetWithdrawals(res http.ResponseWriter, req *http.Request) {
 		resp, err := json.Marshal(result)
 
 		if err != nil {
-			loger.Log.Error("handlers.go", zap.String("Function GetWithdrawals", err.Error()))
+			loger.Log.Error("handlers.go", slog.String("Function GetWithdrawals", err.Error()))
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}
