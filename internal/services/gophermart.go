@@ -7,6 +7,7 @@ import (
 	"gophermart/internal/accrual"
 	db "gophermart/internal/db"
 	"gophermart/internal/loger"
+	"iter"
 	"log/slog"
 	"strconv"
 	"sync"
@@ -177,7 +178,7 @@ func (s *GophermartService) SaveOrder(ctx context.Context, orderNumber string, u
 	return nil
 }
 
-func (s *GophermartService) GetOrders(ctx context.Context, userID int32) ([]Order, error) {
+func (s *GophermartService) GetOrders(ctx context.Context, userID int32) (iter.Seq[Order], error) {
 
 	// Вызываем модуль БД
 	ordersDB, err := s.queries.GetOrdersByUsers(ctx, userID)
@@ -191,17 +192,23 @@ func (s *GophermartService) GetOrders(ctx context.Context, userID int32) ([]Orde
 		return nil, ErrOrderListIsEmpty
 	}
 
-	orders := make([]Order, len(ordersDB))
+	seq := func(yield func(Order) bool) {
+		for _, order := range ordersDB {
+			outOrder := Order{
+				Number:     order.OrderNumber,
+				Status:     order.Status,
+				Accrual:    ToDecimalFromDB(order.Accrual.Int64),
+				UploadedAt: order.UploadedAt,
+			}
 
-	for i, order := range ordersDB {
-		orders[i] = Order{
-			Number:     order.OrderNumber,
-			Status:     order.Status,
-			Accrual:    ToDecimalFromDB(order.Accrual.Int64),
-			UploadedAt: order.UploadedAt,
+			if !yield(outOrder) {
+				return
+			}
 		}
+
 	}
-	return orders, nil
+
+	return seq, nil
 }
 
 // Функция проверки токена

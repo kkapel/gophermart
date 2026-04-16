@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"slices"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/shopspring/decimal"
@@ -181,7 +182,7 @@ func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
 		loger.Log.Info("handlers.go", slog.String("Function GetOrders", "Starts function"))
 
 		// Вызываем метод получения списка заказов
-		orders, err := h.Srv.GetOrders(req.Context(), req.Context().Value(auth.UserIDKey).(int32))
+		seq, err := h.Srv.GetOrders(req.Context(), req.Context().Value(auth.UserIDKey).(int32))
 
 		if err == services.ErrOrderListIsEmpty {
 			loger.Log.Error("handlers.go", slog.String("Function GetOrders", err.Error()))
@@ -196,6 +197,8 @@ func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		orders := slices.Collect(seq)
 
 		resp, err := json.Marshal(orders)
 
