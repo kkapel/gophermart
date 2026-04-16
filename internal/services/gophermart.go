@@ -177,7 +177,7 @@ func (s *GophermartService) SaveOrder(ctx context.Context, orderNumber string, u
 	return nil
 }
 
-func (s *GophermartService) GetOrders(ctx context.Context, userID int32) (*[]Order, error) {
+func (s *GophermartService) GetOrders(ctx context.Context, userID int32) ([]Order, error) {
 
 	// Вызываем модуль БД
 	ordersDB, err := s.queries.GetOrdersByUsers(ctx, userID)
@@ -201,7 +201,7 @@ func (s *GophermartService) GetOrders(ctx context.Context, userID int32) (*[]Ord
 			UploadedAt: order.UploadedAt,
 		}
 	}
-	return &orders, nil
+	return orders, nil
 }
 
 // Функция проверки токена
