@@ -23,6 +23,10 @@ func Run() error {
 	//config.go
 	cfg, err := config.CreateConfig()
 
+	if err != nil {
+		return err
+	}
+
 	loger.Log.Info("Starting server",
 		slog.String("addr", cfg.RunAddress),
 		slog.String("db", cfg.DataBaseURI))
