@@ -1,6 +1,7 @@
 package accrual
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -49,10 +50,16 @@ func NewAccrual(url string) *Accrual {
 }
 
 // Функция отправки запроса в accrual
-func SaveOrder(orders chan InputAccrualType, results chan<- OrderWithAccrual, errors chan<- error, urlAccrualBase string) {
+func SaveOrder(ctx context.Context, orders chan InputAccrualType, results chan<- OrderWithAccrual, urlAccrualBase string) error {
 
-	for input := range orders {
-		func() {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case input, ok := <-orders:
+			if !ok {
+				return nil
+			}
 			accrualMutex := input.AccrualMutex
 			order := input.Order
 			mu := accrualMutex.Mu
@@ -70,16 +77,13 @@ func SaveOrder(orders chan InputAccrualType, results chan<- OrderWithAccrual, er
 			accrualURL, err := url.JoinPath(urlAccrualBase, "/api/orders/", order)
 
 			if err != nil {
-				errors <- err
-				return
+				return err
 			}
 
 			resp, err := http.Get(accrualURL)
 			if err != nil {
-				errors <- err
-				return
+				return err
 			}
-			defer resp.Body.Close()
 
 			// читаем статус
 			switch resp.StatusCode {
@@ -87,8 +91,7 @@ func SaveOrder(orders chan InputAccrualType, results chan<- OrderWithAccrual, er
 				var accrualResponse AccrualResponse
 				err = json.NewDecoder(resp.Body).Decode(&accrualResponse)
 				if err != nil {
-					errors <- err
-					return
+					return err
 				}
 				switch accrualResponse.Status {
 				case "PROCESSED":
@@ -130,7 +133,7 @@ func SaveOrder(orders chan InputAccrualType, results chan<- OrderWithAccrual, er
 				// Запускаем механизм переотправки
 				timeAdd, err := strconv.Atoi(resp.Header.Get("Retry-After"))
 				if err != nil {
-					errors <- err
+					return err
 				}
 				timeSec := time.Now().Add(time.Duration(timeAdd) * time.Second)
 
@@ -145,12 +148,18 @@ func SaveOrder(orders chan InputAccrualType, results chan<- OrderWithAccrual, er
 				go func(input InputAccrualType) {
 					//засыпаем
 					time.Sleep(time.Duration(timeAdd) * time.Second)
-					orders <- input
+					select {
+					case orders <- input:
+					case <-ctx.Done():
+						return
+					}
+
 				}(input)
 
 			}
+			resp.Body.Close()
 
-		}()
-
+		}
 	}
+
 }

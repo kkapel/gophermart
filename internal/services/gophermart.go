@@ -10,12 +10,12 @@ import (
 	"iter"
 	"log/slog"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/shopspring/decimal"
+	"golang.org/x/sync/errgroup"
 )
 
 type GophermartService struct {
@@ -285,24 +285,24 @@ func (s *GophermartService) GetOrdersForAccrual() {
 	const numWorkers = 5
 	ordersChan := make(chan accrual.InputAccrualType, batchSize)
 	resultChan := make(chan accrual.OrderWithAccrual, numWorkers)
-	errChan := make(chan error, numWorkers)
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	// Запускаем go-рутины
-	var wg sync.WaitGroup
+	//var wg sync.WaitGroup
+	eg, ctx := errgroup.WithContext(ctx)
 	for i := 0; i < 5; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			accrual.SaveOrder(ordersChan, resultChan, errChan, s.accrual.URL)
-		}()
-
+		eg.Go(func() error {
+			return accrual.SaveOrder(ctx, ordersChan, resultChan, s.accrual.URL)
+		})
 	}
 
 	go func() {
-		wg.Wait()
+		if err := eg.Wait(); err != nil {
+			loger.Log.Error("Error channel in GetOrdersForAccrual func", slog.String("error", err.Error()))
+			cancel()
+		}
 		close(resultChan)
-		close(errChan)
 	}()
 
 	for {
@@ -320,15 +320,16 @@ func (s *GophermartService) GetOrdersForAccrual() {
 			} else {
 
 				for _, order := range orders {
-					ordersChan <- accrual.InputAccrualType{
+					select {
+					case ordersChan <- accrual.InputAccrualType{
 						Order:        order,
 						AccrualMutex: s.accrual.AccrualMutex,
+					}:
+					case <-ctx.Done():
+						return
 					}
 				}
 			}
-		case err := <-errChan:
-			// Обработка ошибок
-			loger.Log.Error("Error channel in GetOrdersForAccrual func", slog.String("error", err.Error()))
 		case resultOrder := <-resultChan:
 			// Пишем результат в БД
 			update := db.UpdateOrderStatusParams{
