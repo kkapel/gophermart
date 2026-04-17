@@ -358,10 +358,16 @@ func (s *GophermartService) GetOrdersForAccrual() {
 func (s *GophermartService) GetUserBalance(ctx context.Context, userID int32) (*UserBalance, error) {
 	// Вызов БД
 	balance, err := s.queries.GetBalance(ctx, userID)
-	withdrawn, err := s.queries.GetWithdraws(ctx, userID)
 
 	if err != nil {
 		loger.Log.Error("GetUserBalance func", slog.String("db GetBalance error", err.Error()))
+		return nil, err
+	}
+
+	withdrawn, err := s.queries.GetWithdraws(ctx, userID)
+
+	if err != nil {
+		loger.Log.Error("GetUserBalance func", slog.String("db GetWithdraws error", err.Error()))
 		return nil, err
 	}
 
