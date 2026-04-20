@@ -7,6 +7,7 @@ import (
 	"gophermart/internal/accrual"
 	db "gophermart/internal/db"
 	"gophermart/internal/loger"
+	"gophermart/internal/repository"
 	"iter"
 	"log/slog"
 	"strconv"
@@ -19,8 +20,8 @@ import (
 )
 
 type GophermartService struct {
-	queries *db.Queries
-	accrual *accrual.Accrual
+	accrual    *accrual.Accrual
+	repository *repository.Repository
 }
 
 type Claims struct {
@@ -67,9 +68,10 @@ var (
 
 func CreateGophermartService(conn *sql.DB, accrual *accrual.Accrual) *GophermartService {
 
+	repo := repository.NewRepository(db.New(conn))
 	gophermart := &GophermartService{
-		queries: db.New(conn),
-		accrual: accrual,
+		accrual:    accrual,
+		repository: repo,
 	}
 	return gophermart
 }
@@ -83,7 +85,7 @@ func (s *GophermartService) RegisterUser(ctx context.Context, login string, pass
 	}
 
 	// Вызов БД
-	user, err := s.queries.SaveUser(ctx, db.SaveUserParams{
+	user, err := s.repository.SaveUser(ctx, db.SaveUserParams{
 		Login:    login,
 		PassHash: hashPassword,
 	})
@@ -110,7 +112,7 @@ func (s *GophermartService) RegisterUser(ctx context.Context, login string, pass
 func (s *GophermartService) AuthUser(ctx context.Context, login string, password string) (bool, string, error) {
 
 	//Получаем хэш-пароль из бд
-	rows, err := s.queries.GetPassword(ctx, login)
+	rows, err := s.repository.GetPassword(ctx, login)
 	if err != nil {
 		return false, "", err
 	}
@@ -154,7 +156,7 @@ func (s *GophermartService) SaveOrder(ctx context.Context, orderNumber string, u
 	}
 
 	// Проверяем что заказ еще не добавлен
-	id, err := s.queries.GetUserIDByOrder(ctx, orderNumber)
+	id, err := s.repository.GetUserIDByOrder(ctx, orderNumber)
 
 	if err == nil {
 		if id == userID {
@@ -168,7 +170,7 @@ func (s *GophermartService) SaveOrder(ctx context.Context, orderNumber string, u
 	}
 
 	// Сохраняем номер заказа в БД
-	s.queries.SaveOrder(ctx, db.SaveOrderParams{
+	s.repository.SaveOrder(ctx, db.SaveOrderParams{
 		OrderNumber: orderNumber,
 		Status:      "NEW", // Новый заказ
 		UploadedAt:  time.Now(),
@@ -181,7 +183,7 @@ func (s *GophermartService) SaveOrder(ctx context.Context, orderNumber string, u
 func (s *GophermartService) GetOrders(ctx context.Context, userID int32) (iter.Seq[Order], error) {
 
 	// Вызываем модуль БД
-	ordersDB, err := s.queries.GetOrdersByUsers(ctx, userID)
+	ordersDB, err := s.repository.GetOrdersByUsers(ctx, userID)
 
 	if err != nil {
 		return nil, err
@@ -313,7 +315,7 @@ func (s *GophermartService) GetOrdersForAccrual() {
 				Status: "NEW",
 				Limit:  batchSize,
 			}
-			orders, err := s.queries.GetOrdersForAccrual(ctx, args)
+			orders, err := s.repository.GetOrdersForAccrual(ctx, args)
 			if err != nil {
 				// В случае ошибки просто логируем
 				loger.Log.Error(err.Error())
@@ -339,7 +341,7 @@ func (s *GophermartService) GetOrdersForAccrual() {
 					Valid: FromDecimalToDB(resultOrder.Accrual) != 0}, // Если accrual = 0, то пишем null в бд
 				OrderNumber: resultOrder.Order,
 			}
-			row, errorUpdate := s.queries.UpdateOrderStatus(ctx, update)
+			row, errorUpdate := s.repository.UpdateOrderStatus(ctx, update)
 			if errorUpdate != nil {
 				loger.Log.Error("GetOrdersForAccrual func", slog.String("Update db error", errorUpdate.Error()))
 			}
@@ -357,14 +359,14 @@ func (s *GophermartService) GetOrdersForAccrual() {
 
 func (s *GophermartService) GetUserBalance(ctx context.Context, userID int32) (*UserBalance, error) {
 	// Вызов БД
-	balance, err := s.queries.GetBalance(ctx, userID)
+	balance, err := s.repository.GetBalance(ctx, userID)
 
 	if err != nil {
 		loger.Log.Error("GetUserBalance func", slog.String("db GetBalance error", err.Error()))
 		return nil, err
 	}
 
-	withdrawn, err := s.queries.GetWithdraws(ctx, userID)
+	withdrawn, err := s.repository.GetWithdraws(ctx, userID)
 
 	if err != nil {
 		loger.Log.Error("GetUserBalance func", slog.String("db GetWithdraws error", err.Error()))
@@ -381,7 +383,7 @@ func (s *GophermartService) GetUserBalance(ctx context.Context, userID int32) (*
 
 func (s *GophermartService) Withdraw(ctx context.Context, userID int32, orderNumber string, sum decimal.Decimal) error {
 	// Вызов функции на стороне БД
-	ok, err := s.queries.WithdrawDB(ctx,
+	ok, err := s.repository.WithdrawDB(ctx,
 		db.WithdrawDBParams{
 			InputOrderNumber: orderNumber,
 			InputWithdraw:    FromDecimalToDB(sum),
@@ -401,7 +403,7 @@ func (s *GophermartService) Withdraw(ctx context.Context, userID int32, orderNum
 }
 
 func (s *GophermartService) GetWithdrawals(ctx context.Context, userID int32) (*[]Withdrawals, error) {
-	withdrawals, err := s.queries.GetAllWithdrawals(ctx, userID)
+	withdrawals, err := s.repository.GetAllWithdrawals(ctx, userID)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
