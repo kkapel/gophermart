@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"gophermart/internal/accrual"
+	"gophermart/internal/config"
 	db "gophermart/internal/db"
 	"gophermart/internal/loger"
 	"gophermart/internal/repository"
@@ -22,6 +23,7 @@ import (
 type GophermartService struct {
 	accrual    *accrual.Accrual
 	repository *repository.Repository
+	cfg        *config.Config
 }
 
 type Claims struct {
@@ -47,8 +49,6 @@ type Withdrawals struct {
 	ProccesedAt time.Time       `json:"processed_at"`
 }
 
-const TokenExp = time.Hour * 3
-const SecretKey = "testKey1"
 const period = 200
 const batchSize = 100
 
@@ -218,7 +218,7 @@ func CheckToken(tokenString string) (int32, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims,
 		func(t *jwt.Token) (interface{}, error) {
-			return []byte(SecretKey), nil
+			return []byte(config.JWTSecretGlobal.SecretKey), nil
 		})
 	if err != nil {
 		return 0, TokenParsingError
@@ -245,12 +245,12 @@ func generateToken(userID int32) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			// когда создан токен
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TokenExp)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(config.JWTSecretGlobal.TokenExp)),
 		},
 		UserID: userID,
 	})
 
-	tokenString, err := token.SignedString([]byte(SecretKey))
+	tokenString, err := token.SignedString([]byte(config.JWTSecretGlobal.SecretKey))
 	if err != nil {
 		return "", err
 	}

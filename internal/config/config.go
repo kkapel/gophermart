@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"time"
 
 	"github.com/shopspring/decimal"
 	"github.com/spf13/pflag"
@@ -12,6 +13,16 @@ type Config struct {
 	RunAddress           string
 	DataBaseURI          string
 	AccrualSystemAddress string
+}
+
+type JWTSecret struct {
+	SecretKey string
+	TokenExp  time.Duration
+}
+
+var JWTSecretGlobal = JWTSecret{
+	SecretKey: "testKey1",
+	TokenExp:  time.Hour * 3,
 }
 
 var ErrFlagAndEnvVarNotFound = errors.New("Flag and environment variables not found")
