@@ -151,7 +151,16 @@ func (h *Handler) SaveOrder(res http.ResponseWriter, req *http.Request) {
 
 		orderNumber := string(body)
 
-		err = h.Srv.SaveOrder(req.Context(), orderNumber, req.Context().Value(auth.UserIDKey).(int32))
+		userIDCtx := req.Context().Value(auth.UserIDKey)
+		userID, ok := userIDCtx.(int32)
+
+		if !ok {
+			loger.Log.Error("handlers.go", slog.String("Function SaveOrder", services.ErrUserIDNotFound.Error()))
+			http.Error(res, services.ErrUserIDNotFound.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		err = h.Srv.SaveOrder(req.Context(), orderNumber, userID)
 		if err == services.ErrOrderByUserLoaded {
 			// Статус
 			res.WriteHeader(http.StatusOK)
@@ -181,8 +190,17 @@ func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
 	case http.MethodGet:
 		loger.Log.Info("handlers.go", slog.String("Function GetOrders", "Starts function"))
 
+		userIDCtx := req.Context().Value(auth.UserIDKey)
+		userID, ok := userIDCtx.(int32)
+
+		if !ok {
+			loger.Log.Error("handlers.go", slog.String("Function GetOrders", services.ErrUserIDNotFound.Error()))
+			http.Error(res, services.ErrUserIDNotFound.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		// Вызываем метод получения списка заказов
-		seq, err := h.Srv.GetOrders(req.Context(), req.Context().Value(auth.UserIDKey).(int32))
+		seq, err := h.Srv.GetOrders(req.Context(), userID)
 
 		if err == services.ErrOrderListIsEmpty {
 			loger.Log.Error("handlers.go", slog.String("Function GetOrders", err.Error()))
@@ -226,7 +244,16 @@ func (h *Handler) GetUserBalance(res http.ResponseWriter, req *http.Request) {
 	case http.MethodGet:
 		loger.Log.Info("handlers.go", slog.String("Function GetUserBalance", "Starts function"))
 
-		userBalance, err := h.Srv.GetUserBalance(req.Context(), req.Context().Value(auth.UserIDKey).(int32))
+		userIDCtx := req.Context().Value(auth.UserIDKey)
+		userID, ok := userIDCtx.(int32)
+
+		if !ok {
+			loger.Log.Error("handlers.go", slog.String("Function GetUserBalance", services.ErrUserIDNotFound.Error()))
+			http.Error(res, services.ErrUserIDNotFound.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		userBalance, err := h.Srv.GetUserBalance(req.Context(), userID)
 
 		if err != nil {
 			loger.Log.Error("handlers.go", slog.String("Function GetUserBalance", err.Error()))
@@ -276,7 +303,15 @@ func (h *Handler) Withdraw(res http.ResponseWriter, req *http.Request) {
 		}
 
 		// Вызов слоя сервиса
-		err = h.Srv.Withdraw(req.Context(), req.Context().Value(auth.UserIDKey).(int32), withdraw.Order, withdraw.Sum)
+		userIDCtx := req.Context().Value(auth.UserIDKey)
+		userID, ok := userIDCtx.(int32)
+
+		if !ok {
+			loger.Log.Error("handlers.go", slog.String("Function Withdraw", services.ErrUserIDNotFound.Error()))
+			http.Error(res, services.ErrUserIDNotFound.Error(), http.StatusInternalServerError)
+			return
+		}
+		err = h.Srv.Withdraw(req.Context(), userID, withdraw.Order, withdraw.Sum)
 
 		if err != nil {
 			if err == services.ErrNotEnoughAccrualPoints {
@@ -303,7 +338,15 @@ func (h *Handler) GetWithdrawals(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:
 		// Вызываем слой сервиса
-		result, err := h.Srv.GetWithdrawals(req.Context(), req.Context().Value(auth.UserIDKey).(int32))
+		userIDCtx := req.Context().Value(auth.UserIDKey)
+		userID, ok := userIDCtx.(int32)
+
+		if !ok {
+			loger.Log.Error("handlers.go", slog.String("Function GetWithdrawals", services.ErrUserIDNotFound.Error()))
+			http.Error(res, services.ErrUserIDNotFound.Error(), http.StatusInternalServerError)
+			return
+		}
+		result, err := h.Srv.GetWithdrawals(req.Context(), userID)
 
 		if err != nil {
 			if err == services.ErrNotExistsWithdrawals {
